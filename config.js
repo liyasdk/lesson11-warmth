@@ -1,7 +1,7 @@
 window.lessonConfig = {
-    url: "https://YOUR_PROJECT_REF.supabase.co",
-    publishableKey: "YOUR_SUPABASE_PUBLISHABLE_KEY"
+    url: 'https://gomakaqzkifrpuijreku.supabase.co',
+    publishableKey: 'sb_publishable_QXmMBEmOmDNxCIA56ekxwQ_V6twUgoA'
 };
-window.lessonClient = window.supabase && !lessonConfig.url.includes("YOUR_PROJECT_REF")
+window.lessonClient = window.supabase
     ? supabase.createClient(lessonConfig.url, lessonConfig.publishableKey)
     : null;
