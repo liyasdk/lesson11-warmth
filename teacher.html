@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>溫暖的滋味｜教師後台</title>
+<link rel="stylesheet" href="teacher.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="config.js"></script>
+<script defer src="teacher.js"></script>
+</head>
+<body>
+<main>
+    <header>
+        <div><p>國語第十一課 · 溫暖的滋味</p><h1>教師後台</h1></div>
+        <a href="./">學生網頁</a>
+    </header>
+    <p id="status" role="status"></p>
+    <section id="login-panel">
+        <h2>教師登入</h2>
+        <form id="login">
+            <label>電子郵件 <input id="email" type="email" required autocomplete="username"></label>
+            <label>密碼 <input id="password" type="password" required autocomplete="current-password"></label>
+            <button>登入</button>
+        </form>
+    </section>
+    <section id="dashboard" hidden>
+        <div class="toolbar">
+            <h2>全班作答進度</h2>
+            <button id="refresh" type="button">更新</button>
+            <button id="logout" type="button">登出</button>
+        </div>
+        <p id="summary"></p>
+        <div class="table-wrap"><table>
+            <thead><tr><th scope="col">座號</th><th scope="col">任務一</th><th scope="col">任務二</th><th scope="col">任務三</th><th scope="col">最後作答</th></tr></thead>
+            <tbody id="rows"></tbody>
+        </table></div>
+        <h2 id="detail-title">作答明細</h2>
+        <p>點選座號查看該生的作答、訂正與心得。</p>
+        <ol id="details"></ol>
+        <button id="more" type="button" hidden>載入較早的作答</button>
+    </section>
+</main>
+</body>
+</html>

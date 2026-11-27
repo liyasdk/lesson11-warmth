@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>溫暖的滋味｜iPad 平板觸控專用互動網</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* iPad 觸控與水彩繪本基底設計 */
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background-color: #f6efe2;
+            background-image:
+                radial-gradient(#e4d5be 1.2px, transparent 1.2px),
+                radial-gradient(#e4d5be 1.2px, #f6efe2 1.2px);
+            background-size: 32px 32px;
+            background-position: 0 0, 16px 16px;
+            font-family: "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif;
+            color: #3f352e;
+            touch-action: manipulation;
+        }
+        .ipad-panel {
+            border-radius: 22px;
+            box-shadow: 0 6px 16px rgba(70, 55, 42, 0.08), 0 2px 0 rgba(92, 114, 130, 0.14);
+            border: 2px solid #d5c7b2;
+        }
+        /* 平板大按鈕觸控回饋 */
+        .tap-btn {
+            transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.15s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+        .tap-btn:active {
+            transform: scale(0.97);
+        }
+        /* 點選卡片時的發光選取狀態（iPad 點選即歸位核心視覺） */
+        .clue-card {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-radius: 16px;
+            border: 2.5px solid transparent;
+            cursor: pointer;
+            user-select: none;
+        }
+        .clue-card.is-selected {
+            transform: scale(1.02);
+            border-color: #facc15 !important;
+            box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.45), 0 8px 18px rgba(0, 0, 0, 0.18);
+        }
+        /* 分類框在有卡片被選取時的引導脈動提示 */
+        .cat-box {
+            transition: all 0.2s ease;
+            border-radius: 18px;
+        }
+        .cat-box.ready-to-receive {
+            border-style: solid !important;
+            border-color: #f59e0b !important;
+            background-color: #fffbeb !important;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22);
+        }
+        /* 雙文本畫記句子放大觸控行距 */
+        .sentence-item {
+            display: inline;
+            padding: 4px 6px;
+            border-radius: 8px;
+            transition: background-color 0.15s ease;
+            cursor: pointer;
+            line-height: 2.3;
+        }
+        .sentence-item:active {
+            background-color: rgba(59, 130, 246, 0.22);
+        }
+        .hl-same {
+            background-color: #dbeafe !important;
+            border-bottom: 3px solid #2563eb;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+        .hl-diff {
+            background-color: #fee2e2 !important;
+            border-bottom: 3px solid #dc2626;
+            font-weight: 700;
+            color: #7f1d1d;
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+        .float-slow {
+            animation: floatSlow 3.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-3 md:p-4 pb-8">
+
+    <!-- ===================================================================== -->
+    <!-- 平板頂部大型觸控導覽列                                                -->
+    <!-- ===================================================================== -->
+    <nav class="w-full max-w-7xl bg-[#fffdf9] ipad-panel px-4 py-3 mb-4 border-t-4 border-[#8c5a3c] flex flex-wrap items-center justify-between gap-2.5 sticky top-2 z-40">
+        <!-- 左側返回任務大廳按鈕 -->
+        <button onclick="switchGameView('hub')" class="tap-btn flex items-center gap-2.5 text-left pr-2">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#fde6c4] to-[#f7d09c] border-2 border-[#d9a86c] flex items-center justify-center text-2xl shadow-sm">
+                📱
+            </div>
+            <div>
+                <div class="text-base md:text-lg font-black text-[#6e4228] leading-tight">
+                    溫暖的滋味｜iPad 觸控版
+                </div>
+                <div class="text-xs text-[#7a6b5d] font-bold">
+                    點選操作・不卡頓・專為平板設計
+                </div>
+            </div>
+        </button>
+
+        <!-- 中間四大任務分頁大型按鈕（易於手指點擊） -->
+        <div class="flex flex-wrap items-center gap-1.5 bg-[#f3ece0] p-1.5 rounded-2xl border border-[#dcd0bc]">
+            <button id="nav-hub" onclick="switchGameView('hub')" class="tap-btn px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-black bg-[#8c5a3c] text-white shadow-sm">
+                🏠 大廳
+            </button>
+            <button id="nav-game1" onclick="switchGameView('game1')" class="tap-btn px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-bold text-[#7c4d3b]">
+                🥣 任務一：主文本
+            </button>
+            <button id="nav-game2" onclick="switchGameView('game2')" class="tap-btn px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-bold text-[#1f6e5f]">
+                🍍 任務二：補充文本
+            </button>
+            <button id="nav-game3" onclick="switchGameView('game3')" class="tap-btn px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-bold text-[#265675]">
+                📖 任務三：雙文本比較
+            </button>
+        </div>
+
+        <!-- 右側累計總金幣與教師 QR -->
+        <div class="flex items-center gap-2">
+            <button onclick="openTotalCoinsModal()" class="tap-btn flex items-center gap-1.5 bg-gradient-to-r from-[#fef6e4] to-[#fde9c2] text-[#7a4b12] px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-black border-2 border-[#e6b65c] shadow-sm">
+                <span>🪙 總金幣：</span>
+                <span id="globalTotalCoinsDisplay" class="text-base text-[#c47a16]">0</span>
+                <span>枚</span>
+            </button>
+            <button onclick="toggleQRModal()" class="tap-btn bg-[#5b788e] text-white px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-sm">
+                📱 QR
+            </button>
+        </div>
+    </nav>
+
+    <!-- ===================================================================== -->
+    <!-- 畫面零：iPad 任務大廳                                                 -->
+    <!-- ===================================================================== -->
+    <section id="view-hub" class="w-full max-w-6xl flex flex-col gap-5 my-auto">
+        <div class="bg-gradient-to-r from-[#fffdf9] via-[#fdf7ec] to-[#f4fbf8] ipad-panel p-6 md:p-7 border-t-8 border-[#d96b4d]">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-5">
+                <div class="text-center md:text-left flex-1">
+                    <span class="inline-block bg-[#6b8e78] text-white text-xs font-black px-3.5 py-1 rounded-full mb-2">
+                        ✨ 六年級國語公開課・iPad 觸控專屬介面
+                    </span>
+                    <h1 class="text-2xl md:text-3xl font-black text-[#5c3722] mb-2">
+                        來一碗溫暖的滋味：平板互動探索網
+                    </h1>
+                    <p class="text-sm md:text-base text-[#5c5047] leading-relaxed">
+                        專為 iPad 手指點擊設計！分類線索時只要<strong>「點選句子卡片 ➔ 再點選分類框」</strong>即可輕鬆歸位，不必擔心平板滑動誤觸！
+                    </p>
+                </div>
+
+                <!-- 手繪插畫組合 -->
+                <div class="flex items-center gap-3 shrink-0 bg-white/90 p-3 rounded-3xl border-2 border-[#e5d5bc]">
+                    <svg viewBox="0 0 100 100" class="w-20 h-20 md:w-24 md:h-24 float-slow">
+                        <circle cx="50" cy="52" r="42" fill="#fce8d5"/>
+                        <path d="M20 48 Q50 86 80 48 Z" fill="#d96b4d" stroke="#7a3420" stroke-width="2.5"/>
+                        <ellipse cx="50" cy="48" rx="30" ry="7" fill="#f7c873" stroke="#7a3420" stroke-width="2"/>
+                        <circle cx="40" cy="60" r="2.2" fill="#fff"/>
+                        <circle cx="60" cy="60" r="2.2" fill="#fff"/>
+                        <path d="M46 62 Q50 66 54 62" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                    <svg viewBox="0 0 100 100" class="w-20 h-20 md:w-24 md:h-24 float-slow">
+                        <circle cx="50" cy="52" r="42" fill="#dcf2ea"/>
+                        <rect x="22" y="30" width="24" height="44" rx="6" fill="#f9d45c" stroke="#1f6e5f" stroke-width="2.5"/>
+                        <path d="M22 36 Q28 29 34 36 Q40 29 46 36 L46 42 L22 42 Z" fill="#ffffff"/>
+                        <rect x="54" y="44" width="24" height="30" rx="6" fill="#c44d69" stroke="#592232" stroke-width="2.2"/>
+                        <rect x="52" y="38" width="28" height="6" rx="3" fill="#f5e6cc" stroke="#592232" stroke-width="2"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <aside class="ipad-panel bg-white p-4">
+            <form id="join-class" class="flex flex-wrap items-end gap-3">
+                <label class="font-bold">課堂作答碼
+                    <input id="class-code" required maxlength="24" autocomplete="off" autocapitalize="characters" class="block border rounded-lg p-2" placeholder="輸入老師發的個人作答碼">
+                </label>
+                <button class="bg-[#265675] text-white rounded-lg p-2 font-bold">加入課堂</button>
+                <a href="teacher.html" class="p-2 underline">教師後台</a>
+            </form>
+            <p id="class-status" role="status" class="mt-2 text-sm">請先加入課堂，老師才會收到之後的作答。</p>
+        </aside>
+
+        <!-- 三大任務觸控大卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div onclick="switchGameView('game1')" class="tap-btn bg-[#fffaf4] ipad-panel p-6 border-t-8 border-[#d96b4d] flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="bg-[#d96b4d] text-white text-xs font-black px-3 py-1.5 rounded-full">任務一・主文本</span>
+                        <span id="hub-g1-badge" class="text-xs font-black text-[#c47a16] bg-[#fdf0d5] px-3 py-1 rounded-xl border border-[#ebd09b]">🪙 0 / 10 枚</span>
+                    </div>
+                    <h2 class="text-xl font-black text-[#b85338] mb-2">🥣 〈來一碗溫暖的羹湯〉</h2>
+                    <p class="text-sm text-[#6b5e55] leading-relaxed mb-4">
+                        第一關：4 題課文大意與深究（自由選答）。<br>
+                        第二關：點擊分類 10 句溫暖線索。
+                    </p>
+                </div>
+                <div class="bg-[#d96b4d] text-white text-center font-black py-3.5 rounded-2xl text-base shadow-sm">
+                    點此開始任務一 ➡️
+                </div>
+            </div>
+
+            <div onclick="switchGameView('game2')" class="tap-btn bg-[#f5fcf9] ipad-panel p-6 border-t-8 border-[#2d8a78] flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="bg-[#2d8a78] text-white text-xs font-black px-3 py-1.5 rounded-full">任務二・補充文本</span>
+                        <span id="hub-g2-badge" class="text-xs font-black text-[#c47a16] bg-[#fdf0d5] px-3 py-1 rounded-xl border border-[#ebd09b]">🪙 0 / 10 枚</span>
+                    </div>
+                    <h2 class="text-xl font-black text-[#1f6e5f] mb-2">🍍 〈最好的味覺禮物〉</h2>
+                    <p class="text-sm text-[#3f665b] leading-relaxed mb-4">
+                        第一關：4 題深究與時間順序測試。<br>
+                        第二關：點擊分類 10 句溫暖線索。
+                    </p>
+                </div>
+                <div class="bg-[#2d8a78] text-white text-center font-black py-3.5 rounded-2xl text-base shadow-sm">
+                    點此開始任務二 ➡️
+                </div>
+            </div>
+
+            <div onclick="switchGameView('game3')" class="tap-btn bg-[#f7f9fc] ipad-panel p-6 border-t-8 border-[#3a7ca5] flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="bg-[#3a7ca5] text-white text-xs font-black px-3 py-1.5 rounded-full">任務三・雙文本比較</span>
+                        <span id="hub-g3-badge" class="text-xs font-black text-[#c47a16] bg-[#fdf0d5] px-3 py-1 rounded-xl border border-[#ebd09b]">🪙 0 / 10 枚</span>
+                    </div>
+                    <h2 class="text-xl font-black text-[#265675] mb-2">📖 雙文本畫重點 ＆ 闖關</h2>
+                    <p class="text-sm text-[#4a6073] leading-relaxed mb-4">
+                        第一關：藍筆畫相似、紅筆畫相異。<br>
+                        第二關：5 題比較闖關＋截圖溫暖定義。
+                    </p>
+                </div>
+                <div class="bg-[#3a7ca5] text-white text-center font-black py-3.5 rounded-2xl text-base shadow-sm">
+                    點此開始任務三 ➡️
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 畫面一：任務一・主文本〈來一碗溫暖的羹湯〉（iPad 點選即歸位版）         -->
+    <!-- ===================================================================== -->
+    <section id="view-game1" class="hidden w-full max-w-6xl flex-col gap-4">
+        
+        <!-- 閱讀確認 -->
+        <div id="g1-preRead" class="bg-[#fffdf9] ipad-panel p-5 md:p-7 border-t-8 border-[#d96b4d]">
+            <div class="flex flex-wrap items-center justify-between border-b-2 border-[#efe5d5] pb-3 mb-4 gap-2">
+                <div>
+                    <span class="inline-block bg-[#d96b4d] text-white text-xs font-black px-3 py-1 rounded-full mb-1">任務一・準備步驟：細讀主文本</span>
+                    <h2 class="text-2xl font-black text-[#b85338]">📜 〈來一碗溫暖的羹湯〉</h2>
+                </div>
+                <span class="text-sm text-[#7a6b5d] font-bold bg-[#f7eedc] px-4 py-1.5 rounded-xl border border-[#e3d2b4]">作者：陳維鸚</span>
+            </div>
+
+            <div class="bg-[#fcf8f0] p-5 rounded-2xl border border-[#e5d8c5] text-base md:text-lg leading-loose text-[#4a3b32] space-y-4 max-h-[52vh] overflow-y-auto shadow-inner">
+                <p style="text-indent: 2em;">天寒時，特別想來碗羹。勾芡的湯汁濃稠不易散熱，即便是起鍋一會兒，碗裡也還是熱騰騰的，那溫熱滑順的湯汁從喉間滾下，彷彿便能幫身體注入暖氣。在宜蘭，無論是熱鬧或隱密的大街小巷，總會找到賣羹的店家。或許是氣候多雨溼冷的緣故，宜蘭人特別愛吃羹，因為羹湯保溫的特點，正好能滿足祛寒需求。</p>
+                <p style="text-indent: 2em;">小時候，我的母親愛在冬天做羹湯。她會先到常去的肉販那兒預訂黑豬肉，取得後切成長條狀，泡醬醃製，之後再加入新鮮魚漿攪拌。家裡廚房空間狹小，母親總是坐在一張小椅子上，把大鍋放在地上，雙手奮力攪拌。我喜歡蹲在旁邊看母親，順便也拿根筷子亂攪。母親總是縱容我，還邊拌邊問：要吃麵，還是粄條？</p>
+                <p style="text-indent: 2em;">當肉條和魚漿不分你我時，爐上熱鍋的水也差不多燒開了。我幫母親將大鍋端上，她開始像下餃子那樣，一塊一塊放下去。裹了魚漿的肉條原本還黏膩膩，一碰到熱水便快速結形，不一會兒工夫，廚房便充滿了香氣。將熟透的肉條一一撈起，放進一旁的鍋子裡，然後開始著手煮羹湯。每次加入的配料都有些不同，有時候是筍絲加黑木耳和大白菜，有時候是香菇加紅蘿蔔和菜頭，端視早晨至市場巡禮後的收穫而定。先將配料以油炒香，再將剛剛煮肉條的水倒進鍋裡，煮開後，加入調味料並勾芡，肉與羹合而為一，就是肉羹。</p>
+                <p style="text-indent: 2em;">在旁等候的我當然也沒閒著，母親一個轉身，我便偷夾一塊肉丟進嘴裡。母親忙著顧羹湯，我接連夾了好幾個往嘴裡塞，然後溜到客廳玩，想到又再悄悄鑽入廚房。如此往返多次，等到肉羹正式上桌時，我也飽了。</p>
+                <p style="text-indent: 2em;">煮羹湯並不難，在宜蘭是常見的家庭料理，即使主要配料不同，形式也大同小異。不過在羹湯調味上就千變萬化了，可說人人都有其獨特配方與味道。現在外食機會多了，我的母親也較少洗手做羹湯，但一聽到孩子說想吃，她總是拿著提鍋，騎腳踏車到街上買回來。母親很可愛，她通常只買肉羹，然後回家自己煮麵，一碗肉羹就能變出兩人份來。要不，還可以直接淋在白飯上當作肉羹飯，或是再多加入一些青菜，即便是別人家的肉羹，也能變出自家的風味。</p>
+                <p style="text-indent: 2em;">有時想想，為什麼自己特別喜愛肉羹湯呢？坦白說，並不是因為它獨特的滋味，而是還能跟母親任性撒嬌，這可是世上最幸福的事了。</p>
+            </div>
+
+            <div class="mt-5 bg-[#fdf6e7] p-4 rounded-2xl border-2 border-[#e6be7a] flex flex-col sm:flex-row items-center justify-between gap-4">
+                <label class="flex items-center gap-3 cursor-pointer select-none py-1">
+                    <input type="checkbox" id="g1-readCheck" onchange="toggleSingleUnlock(1)" class="w-7 h-7 accent-[#d96b4d] rounded-lg cursor-pointer">
+                    <span class="text-base font-black text-[#544337]">我已經仔細閱讀完〈來一碗溫暖的羹湯〉全文了！</span>
+                </label>
+                <button id="g1-unlockBtn" onclick="startTaskCompQuiz(1)" disabled class="tap-btn w-full sm:w-auto bg-gray-300 text-gray-500 font-black px-8 py-4 rounded-2xl text-base cursor-not-allowed">
+                    🥣 進入第一關：課文大意與深究
+                </button>
+            </div>
+        </div>
+
+        <!-- 任務一第一關：課文大意與深究（大按鈕＋選項每次洗牌＋無鎖死限制） -->
+        <div id="g1-compQuiz" class="hidden flex-col gap-4 max-w-4xl w-full mx-auto">
+            <div class="bg-[#fffdf9] ipad-panel p-4 border-t-8 border-[#d96b4d] flex flex-wrap justify-between items-center gap-3">
+                <div>
+                    <span class="bg-[#d96b4d] text-white text-xs font-black px-3 py-1 rounded-full">任務一・第一關</span>
+                    <h2 class="text-lg md:text-xl font-black text-[#b85338] mt-1">📖 〈來一碗溫暖的羹湯〉課文大意與深究</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="openSingleTextModal(1)" class="tap-btn bg-[#6b8e78] text-white px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold">📜 回看全文</button>
+                    <span id="g1-compBadge" class="bg-[#f7eedc] text-[#7c4d3b] px-4 py-2 rounded-xl text-xs md:text-sm font-black border border-[#e3d2b4]">第 1 / 4 題</span>
+                </div>
+            </div>
+
+            <div class="bg-[#fffdf9] ipad-panel p-5 md:p-7 flex flex-col gap-4">
+                <h3 id="g1-compQTitle" class="text-base md:text-lg font-black text-[#4a3b32] leading-relaxed"></h3>
+                <div id="g1-compOptions" class="grid grid-cols-1 gap-3.5"></div>
+                <div id="g1-compFeedback" class="hidden p-4 rounded-2xl border-2 text-sm leading-relaxed">
+                    <div id="g1-compFbTitle" class="font-black text-base mb-1"></div>
+                    <p id="g1-compFbDetail" class="text-sm"></p>
+                    <div class="mt-4 flex justify-end">
+                        <button id="g1-compNextBtn" onclick="nextTaskCompQ(1)" class="tap-btn bg-[#d96b4d] text-white text-sm md:text-base font-black px-7 py-3 rounded-2xl shadow-sm">
+                            下一題 ➡️
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 任務一第二關：iPad「點選卡片 ➔ 點選分類框」溫暖線索分類 -->
+        <div id="g1-main" class="hidden flex-col gap-4">
+            <div class="bg-[#fffdf9] ipad-panel p-4 border-t-8 border-[#d96b4d] flex flex-col md:flex-row justify-between items-center gap-3">
+                <div>
+                    <h2 class="text-lg md:text-xl font-black text-[#b85338]">🥣 任務一・第二關：找出〈來一碗溫暖的羹湯〉溫暖的地方</h2>
+                    <p class="text-xs md:text-sm text-[#6b5e55] font-bold">👆 平板操作法：先點選一張句子卡片，再點選右邊對應的分類框！</p>
+                </div>
+                <div class="flex items-center flex-wrap gap-2">
+                    <button onclick="reopenTaskCompQuiz(1)" class="tap-btn bg-[#e89f4c] text-white px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold">📖 回看大意題</button>
+                    <button onclick="openSingleTextModal(1)" class="tap-btn bg-[#6b8e78] text-white px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold">📜 回看全文</button>
+                    <div class="flex items-center gap-3 bg-[#f7eedc] px-4 py-2 rounded-xl border border-[#e3d2b4]">
+                        <span id="g1-coin" class="text-base font-black text-[#c98a2c]">🪙 0</span>
+                        <span class="text-[#cbbba2]">|</span>
+                        <span id="g1-score" class="text-base font-black text-[#5d826b]">0 / 10</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 即時點選狀態引導橫幅 -->
+            <div id="g1-tapBanner" class="bg-[#fdf6e7] border-2 border-[#e6be7a] border-l-8 border-l-[#d96b4d] p-3.5 rounded-2xl text-sm text-[#544337] flex flex-wrap items-center justify-between gap-2">
+                <span id="g1-feedback" class="font-bold">👆 請先點選下方「待分類課文句子」中的任一張卡片！</span>
+                <button id="g1-returnBtn" onclick="returnSelectedToPool(1)" class="hidden tap-btn bg-[#7c4d3b] text-white text-xs font-black px-3.5 py-2 rounded-xl">
+                    ↩️ 把已選卡片放回待分類區
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <!-- 左側卡片池（5欄） -->
+                <div class="lg:col-span-5 bg-[#fffdf9] p-4 ipad-panel flex flex-col">
+                    <div class="flex justify-between items-center border-b-2 border-[#efe5d5] pb-2 mb-3">
+                        <h3 class="text-base font-black text-[#7c4d3b]">📦 待分類課文句子</h3>
+                        <span class="text-xs font-bold text-[#d96b4d] bg-[#fdf0eb] px-2.5 py-0.5 rounded-lg">點一下選取</span>
+                    </div>
+                    <div id="g1-pool" onclick="handlePoolTap(event, 1)" class="flex-1 min-h-[340px] flex flex-col gap-2.5 p-3 bg-[#f8f2e7] rounded-2xl border-2 border-dashed border-[#cbbba2] overflow-y-auto max-h-[540px]">
+                    </div>
+                    <div class="flex gap-2.5 mt-3.5">
+                        <button onclick="verifySingleGame(1)" class="tap-btn flex-1 bg-[#6b8e78] text-white font-black py-3.5 rounded-2xl text-sm md:text-base shadow-sm">🔍 驗證答案</button>
+                        <button onclick="resetSingleGame(1)" class="tap-btn flex-1 bg-[#efe6d5] text-[#4a3f38] font-bold py-3.5 rounded-2xl text-sm md:text-base">🔄 重新洗牌</button>
+                    </div>
+                </div>
+
+                <!-- 右側五大分類點擊區（7欄） -->
+                <div class="lg:col-span-7 flex flex-col gap-3">
+                    <div onclick="handleCategoryTap(1, 'body')" class="cat-box tap-btn bg-[#fffdf9] border-2 border-dashed border-[#cbbba2] p-3.5 min-h-[86px]" data-game="1" data-category="body">
+                        <div class="flex items-center justify-between border-b border-[#efe5d5] pb-1.5 mb-2">
+                            <h4 class="font-black text-[#7c4d3b] text-sm">🔥 1. 身體感受（物理保溫與禦寒）</h4>
+                            <span class="put-hint text-[11px] font-bold text-[#b85338] opacity-75">點此放入</span>
+                        </div>
+                        <div class="target-slot flex flex-col gap-2 min-h-[28px]"></div>
+                    </div>
+
+                    <div onclick="handleCategoryTap(1, 'action')" class="cat-box tap-btn bg-[#fffdf9] border-2 border-dashed border-[#cbbba2] p-3.5 min-h-[86px]" data-game="1" data-category="action">
+                        <div class="flex items-center justify-between border-b border-[#efe5d5] pb-1.5 mb-2">
+                            <h4 class="font-black text-[#7c4d3b] text-sm">❤️ 2. 關心行動（貼心詢問與媽媽包容）</h4>
+                            <span class="put-hint text-[11px] font-bold text-[#b85338] opacity-75">點此放入</span>
+                        </div>
+                        <div class="target-slot flex flex-col gap-2 min-h-[28px]"></div>
+                    </div>
+
+                    <div onclick="handleCategoryTap(1, 'participate')" class="cat-box tap-btn bg-[#fffdf9] border-2 border-dashed border-[#cbbba2] p-3.5 min-h-[86px]" data-game="1" data-category="participate">
+                        <div class="flex items-center justify-between border-b border-[#efe5d5] pb-1.5 mb-2">
+                            <h4 class="font-black text-[#7c4d3b] text-sm">🍳 3. 動手參與（陪伴製作與分享樂趣）</h4>
+                            <span class="put-hint text-[11px] font-bold text-[#b85338] opacity-75">點此放入</span>
+                        </div>
+                        <div class="target-slot flex flex-col gap-2 min-h-[28px]"></div>
+                    </div>
+
+                    <div onclick="handleCategoryTap(1, 'heart')" class="cat-box tap-btn bg-[#fffdf9] border-2 border-dashed border-[#cbbba2] p-3.5 min-h-[86px]" data-game="1" data-category="heart">
+                        <div class="flex items-center justify-between border-b border-[#efe5d5] pb-1.5 mb-2">
+                            <h4 class="font-black text-[#7c4d3b] text-sm">🥰 4. 心靈溫暖（任性撒嬌的幸福記憶）</h4>
+                            <span class="put-hint text-[11px] font-bold text-[#b85338] opacity-75">點此放入</span>
+                        </div>
+                        <div class="target-slot flex flex-col gap-2 min-h-[28px]"></div>
+                    </div>
+
+                    <div onclick="handleCategoryTap(1, 'distractor')" class="cat-box tap-btn bg-[#f2f6f9] border-2 border-dashed border-[#7c98ad] p-3.5 min-h-[86px]" data-game="1" data-category="distractor">
+                        <div class="flex items-center justify-between border-b border-[#dce6ee] pb-1.5 mb-2">
+                            <h4 class="font-black text-[#466175] text-sm">📋 5. 純描述（客觀環境或食材敘述）</h4>
+                            <span class="put-hint text-[11px] font-bold text-[#466175] opacity-75">點此放入</span>
+                        </div>
+                        <div class="target-slot flex flex-col gap-2 min-h-[28px]"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 畫面二：任務二・補充文本〈最好的味覺禮物〉（iPad 點選即歸位版）         -->
+    <!-- ===================================================================== -->
+    <section id="view-game2" class="hidden w-full max-w-6xl flex-col gap-4">
+        
+        <!-- 閱讀確認 -->
+        <div id="g2-preRead" class="bg-[#fbfffd] ipad-panel p-5 md:p-7 border-t-8 border-[#2d8a78]">
+            <div class="flex flex-wrap items-center justify-between border-b-2 border-[#dcebe4] pb-3 mb-4 gap-2">
+                <div>
+                    <span class="inline-block bg-[#2d8a78] text-white text-xs font-black px-3 py-1 rounded-full mb-1">任務二・準備步驟：細讀補充文本</span>
+                    <h2 class="text-2xl font-black text-[#1f6e5f]">🍍 〈最好的味覺禮物〉</h2>
+                </div>
+                <span class="text-sm text-[#3f665b] font-bold bg-[#e3f2ec] px-4 py-1.5 rounded-xl border border-[#b4d6c8]">改寫自張曼娟《我的手作年代》</span>
+            </div>
+
+            <div class="bg-[#f4faf7] p-5 rounded-2xl border border-[#cce0d7] text-base md:text-lg leading-loose text-[#2d433b] space-y-4 max-h-[52vh] overflow-y-auto shadow-inner">
+                <p style="text-indent: 2em;">小小的廚房堆著一顆顆快遞送到的有機金鑽鳳梨，顯得擁擠許多。我和朋友們賣力的切掉鳳梨頭，削去鳳梨皮，將鳳梨心除去後，切成一塊一塊，裝進玻璃缸裡備用。鳳梨的甜香氣味，此刻已充滿整個空間，大家興奮的將鳳梨塊和開水倒進果汁機裡，一會兒工夫，淺黃色的鳳梨汁就完成了。一杯杯盛裝在透明杯子裡的果汁，上方被一層厚厚的雪白泡沫覆蓋著，這就是孩子們專屬的下午茶飲料。</p>
+                <p style="text-indent: 2em;">果汁機裡的刀刃一轉動起來時，我就彷彿又嗅到了童年水果的味道。我記得爸爸參加公司抽獎，帶了一臺果汁機回來，媽媽特地從市場買回許多黃綠色的軟芭樂。我們圍成一圈，看著媽媽將一顆顆洗乾淨的芭樂切成小塊狀，再一整盤投進玻璃容器裡，接著一按開關，塊狀的芭樂轉瞬間「粉身碎骨」，成為一杯杯好喝的果汁。那時候的芭樂也許不好看，但是真的好香啊！</p>
+                <p style="text-indent: 2em;">媽媽和鄰居媽媽一起上市場，有時候買一大袋暗紅的李子回家，我們見了總要退避三舍。李子雖然美，卻酸得讓人皺眉，縱使大人不斷遊說：「吃李子對女孩子好，皮膚水嫩水嫩的。」我們這群女生還是躲得遠遠的。然而，當廚房開了火，媽媽把最大的鍋子搬出來，我們就從四面八方湧進來，像小鳥一樣的雀躍。大家都搶著幫忙，自願將李子切開，把果核取出來，看著媽媽熬煮李子果醬。因為李子很酸，煮一鍋李子果醬，得用上一包黃砂糖，當果肉融化以後，混合著焦糖，上升的氣味實在太甜美了。</p>
+                <p style="text-indent: 2em;">媽媽一邊熬煮，一邊調味，她會用小湯匙舀出一勺，讓我嘗嘗味道。「還是太酸了！」我搖搖頭。過了一會兒再嘗嘗，發出專業的判斷：「現在差不多了。」於是，火熄了，等待果醬涼了以後裝進瓶子裡。只有我嘗過熱騰騰的果醬滋味，而媽媽總是信任我的味覺，這讓我建立起小小的自信。</p>
+                <p style="text-indent: 2em;">現今隨處可見的茶飲店，人手一杯調製飲料。我擔心孩子們從小被那些化學氣味、色素麻痺了味覺，於是，邀請好友一起製作天然的果汁，讓他們嘗一嘗食物真正的味道。讓他們一邊啜飲，一邊想像植物從泥土裡生成，開花之後結果，果實慢慢生長，在陽光照射下變得甜蜜，在黑夜星空裡變得堅強，終於成為一顆美好的果實，才能噴發出這樣濃烈的香氣，才能流淌出如此豐沛的汁液。</p>
+            </div>
+
+            <div class="mt-5 bg-[#e7f4ef] p-4 rounded-2xl border-2 border-[#94c9b8] flex flex-col sm:flex-row items-center justify-between gap-4">
+                <label class="flex items-center gap-3 cursor-pointer select-none py-1">
+                    <input type="checkbox" id="g2-readCheck" onchange="toggleSingleUnlock(2)" class="w-7 h-7 accent-[#2d8a78] rounded-lg cursor-pointer">
+                    <span class="text-base font-black text-[#26473d]">我已經仔細閱讀完〈最好的味覺禮物〉全文了！</span>
+                </label>
+                <button id="g2-unlockBtn" onclick="startTaskCompQuiz(2)" disabled class="tap-btn w-full sm:w-auto bg-gray-300 text-gray-500 font-black px-8 py-4 rounded-2xl text-base cursor-not-allowed">
+                    🍍 進入第一關：課文深究與時間軸
+                </button>
+            </div>
+        </div>
+
+        <!-- 任務二第一關：課文深究與時間軸 -->
+        <div id="g2-compQuiz" class="hidden flex-col gap-4 max-w-4xl w-full mx-auto">
+            <div class="bg-[#fbfffd] ipad-panel p-4 border-t-8 border-[#2d8a78] flex flex-wrap justify-between items-center gap-3">
+                <div>
+                    <span class="bg-[#2d8a78] text-white text-xs font-black px-3 py-1 rounded-full">任務二・第一關</span>
+                    <h2 class="text-lg md:text-xl font-black text-[#1f6e5f] mt-1">📖 〈最好的味覺禮物〉課文深究與時間軸</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="openSingleTextModal(2)" class="tap-btn bg-[#3a7ca5] text-white px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold">📜 回看全文</button>
+                    <span id="g2-compBadge" class="bg-[#e6f4ef] text-[#226658] px-4 py-2 rounded-xl text-xs md:text-sm font-black border border-[#b6d8cb]">第 1 / 4 題</span>
+                </div>
+            </div>
+
+            <div class="bg-[#fbfffd] ipad-panel p-5 md:p-7 flex flex-col gap-4">
+                <h3 id="g2-compQTitle" class="text-base md:text-lg font-black text-[#2d433b] leading-relaxed"></h3>
+                <div id="g2-compOptions" class="grid grid-cols-1 gap-3.5"></div>
+                <div id="g2-compFeedback" class="hidden p-4 rounded-2xl border-2 text-sm leading-relaxed">
+                    <div id="g2-compFbTitle" class="font-black text-base mb-1"></div>
+                    <p id="g2-compFbDetail" class="text-sm"></p>
+                    <div class="mt-4 flex justify-end">
+                        <button id="g2-compNextBtn" onclick="nextTaskCompQ(2)" class="tap-btn bg-[#2d8a78] text-white text-sm md:text-base font-black px-7 py-3 rounded-2xl shadow-sm">
+                            下一題 ➡️
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 任務二第二關：iPad「點選卡片 ➔ 點選分類框」溫暖線索分類 -->
+        <div id="g2-main" class="hidden flex-col gap-4">
+            <div class="bg-[#fbfffd] ipad-panel p-4 border-t-8 border-[#2d8a78] flex flex-col md:flex-row justify-between items-center gap-3">
+                <div>
+                    <h2 class="text-lg md:text-xl font-black text-[#1f6e5f]">🍍 任務二・第二關：找出〈最好的味覺禮物〉溫暖的地方</h2>
+                    <p class="text-xs md:text-sm text-[#4c6b60] font-bold">👆 平板操作法：先點選一張句子卡片，再點選右邊對應的分類框！</p>
+                </div>
+                <div class="flex items-center flex-wrap gap-2">
+                    <button onclick="reopenTaskCompQuiz(2)" class="tap-btn bg-[#3b9c87] text-white px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold">📖 回看深究題</button>
+                    <button onclick="openSingleTextModal(2)" class="tap-btn bg-[#3a7ca5] text-white px-4 py-2.5 rounded-xl text-xs md:text-sm font-bold">📜 回看全文</button>
+                    <div class="flex items-center gap-3 bg-[#e6f4ef] px-4 py-2 rounded-xl border border-[#b6d8cb]">
+                        <span id="g2-coin" class="text-base font-black text-[#c98a2c]">🪙 0</span>
+                        <span class="text-[#b6d8cb]">|</span>
+                        <span id="g2-score" class="text-base font-black text-[#267363]">0 / 10</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="g2-tapBanner" class="bg-[#e8f4fa] border-2 border-[#9ec5dc] border-l-8 border-l-[#3a7ca5] p-3.5 rounded-2xl text-sm text-[#264152] flex flex-wrap items-center justify-between gap-2">
+                <span id="g2-feedback" class="font-bold">👆 請先點選下方「待分類課文句子」中的任一張卡片！</span>
+                <button id="g2-returnBtn" onclick="returnSelectedToPool(2)" class="hidden tap-btn bg-[#1f6e5f] text-white text-xs font-black px-3.5 py-2 rounded-xl">
+                    ↩️ 把已選卡片放回待分類區
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <div class="lg:col-span-5 bg-[#fbfffd] p-4 ipad-panel flex flex-col">
+                    <div class="flex justify-between items-center border-b-2 border-[#dcebe4] pb-2 mb-3">
+                        <h3 class="text-base font-black text-[#226658]">📦 待分類課文句子</h3>
+                        <span class="text-xs font-bold text-[#2d8a78] bg-[#e3f2ec] px-2.5 py-0.5 rounded-lg">點一下選取</span>
+                    </div>
+                    <div id="g2-pool" onclick="handlePoolTap(event, 2)" class="flex-1 min-h-[340px] flex flex-col gap-2.5 p-3 bg-[#eef7f3] rounded-2xl border-2 border-dashed border-[#9cc4b4] overflow-y-auto max-h-[540px]">
+                    </div>
+                    <div class="flex gap-2.5 mt-3.5">
+                        <button onclick="verifySingleGame(2)" class="tap-btn flex-1 bg-[#3a7ca5] text-white font-black py-3.5 rounded-2xl text-sm md:text-base shadow-sm">🔍 驗證答案</button>
+                        <button onclick="resetSingleGame(2)" class="tap-btn flex-1 bg-[#e3f0eb] text-[#2d433b] font-bold py-3.5 rounded-2xl text-sm md:text-base">🔄 重新洗牌</button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-7 flex flex-col gap-3">
+                    <div onclick="handleCategoryTap(2, 'body')" class="cat-box tap-btn bg-[#fbfffd] border-2 border-dashed border-[#a5c9bb] p-3.5 min-h-[86px]" data-game="2" data-category="body">
+                        <div class="flex items-center justify-between border-b border-[#dcebe4] pb-1.5 mb-2">
+                            <h4 class="font-black text-[#226658] text-sm">🔥 1. 身體感受（香氣喚起感官與童年記憶）</h4>
+                            <span class="put-hint text-[11px] font-bold text-[#1f6e5f] opacity-75">點此放入</span>
+                        </div>
+                        <div class="target-slot flex flex-col gap-2 min-h-[28px]"></div>
+                    </div>
+
+                    <div onclick="handleCategoryTap(2, 'action')" class="cat-box tap-btn bg-[#fbfffd] border-2 border-dashed border-[#a5c9bb] p-3.5 min-h-[86px]" data-game="2" data-category="action">
+                        <div class="flex items-center justify-between border-b border-[#dcebe4] pb-1.5 mb-2">
+                            <h4 class="font-black text-[#226658] text-sm">❤️ 2. 關心行動（貼心詢問與守護天然滋味）</h4>
+                            <span class="put-hint text-[11px] font-bold text-[#1f6e5f] opacity-75">點此放入</span>
+                        </div>
+                        <div class="target-slot flex flex-col gap-2 min-h-[28px]"></div>
+                    </div>
+
+                    <div onclick="handleCategoryTap(2, 'participate')" class="cat-box tap-btn bg-[#fbfffd] border-2 border-dashed border-[#a5c9bb] p-3.5 min-h-[86px]" data-game="2" data-category="participate">
+                        <div class="flex items-center justify-between border-b border-[#dcebe4] pb-1.5 mb-2">
+                            <h4 class="font-black text-[#226658] text-sm">🍳 3. 動手參與（陪伴製作與分享樂趣）</h4>
+                            <span class="put-hint text-[11px] font-bold text-[#1f6e5f] opacity-75">點此放入</span>
+                        </div>
+                        <div class="target-slot flex flex-col gap-2 min-h-[28px]"></div>
+                    </div>
+
+                    <div onclick="handleCategoryTap(2, 'heart')" class="cat-box tap-btn bg-[#fbfffd] border-2 border-dashed border-[#a5c9bb] p-3.5 min-h-[86px]" data-game="2" data-category="heart">
+                        <div class="flex items-center justify-between border-b border-[#dcebe4] pb-1.5 mb-2">
+                            <h4 class="font-black text-[#226658] text-sm">🥰 4. 心靈溫暖（被信任的自信與感恩記憶）</h4>
+                            <span class="put-hint text-[11px] font-bold text-[#1f6e5f] opacity-75">點此放入</span>
+                        </div>
+                        <div class="target-slot flex flex-col gap-2 min-h-[28px]"></div>
+                    </div>
+
+                    <div onclick="handleCategoryTap(2, 'distractor')" class="cat-box tap-btn bg-[#eef5fa] border-2 border-dashed border-[#7aa8c7] p-3.5 min-h-[86px]" data-game="2" data-category="distractor">
+                        <div class="flex items-center justify-between border-b border-[#d5e6f2] pb-1.5 mb-2">
+                            <h4 class="font-black text-[#2c5d7d] text-sm">📋 5. 純描述（客觀環境或食材敘述）</h4>
+                            <span class="put-hint text-[11px] font-bold text-[#2c5d7d] opacity-75">點此放入</span>
+                        </div>
+                        <div class="target-slot flex flex-col gap-2 min-h-[28px]"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 畫面三：任務三・雙文本同屏藍紅畫重點 ＆ 比較闖關（平板最佳化版）         -->
+    <!-- ===================================================================== -->
+    <section id="view-game3" class="hidden w-full max-w-7xl flex-col gap-3">
+        
+        <div class="bg-[#fffdf9] ipad-panel px-4 py-3 border-t-4 border-[#3a7ca5] flex flex-wrap justify-between items-center gap-2">
+            <div>
+                <h2 class="text-base md:text-lg font-black text-[#265675]">📖 任務三：雙文本對照與異同比較闖關</h2>
+                <p class="text-xs text-[#5c6f80]">主文本〈來一碗溫暖的羹湯〉 × 補充文本〈最好的味覺禮物〉</p>
+            </div>
+            <div class="flex items-center gap-1.5 bg-[#f3ece0] p-1 rounded-2xl border border-[#dcd0bc]">
+                <button id="g3-tab1" onclick="switchDualStage(1)" class="tap-btn px-4 py-2 rounded-xl text-xs md:text-sm font-black bg-[#8c5a3c] text-white shadow-sm">
+                    🖍️ 第一關：雙文本畫重點
+                </button>
+                <button id="g3-tab2" onclick="switchDualStage(2)" class="tap-btn px-4 py-2 rounded-xl text-xs md:text-sm font-bold text-[#5c4f45]">
+                    🏆 第二關：雙文本比較闖關
+                </button>
+            </div>
+        </div>
+
+        <!-- 任務三第一關：雙文本畫重點 -->
+        <div id="g3-stage1" class="flex flex-col gap-3">
+            <div class="bg-[#fffdf9] ipad-panel px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center flex-wrap gap-2">
+                    <span class="text-xs md:text-sm font-black text-[#5c4232]">🖌️ 選畫筆後點句子：</span>
+                    <button onclick="setDualPen('same')" id="pen-same" class="tap-btn px-4 py-2 rounded-xl text-xs md:text-sm font-black bg-[#dbeafe] text-[#1e3a8a] border-2 border-[#2563eb] ring-2 ring-[#2563eb]/30">
+                        🔵 相似（藍色）
+                    </button>
+                    <button onclick="setDualPen('diff')" id="pen-diff" class="tap-btn px-4 py-2 rounded-xl text-xs md:text-sm font-black bg-[#fee2e2] text-[#7f1d1d] border-2 border-transparent">
+                        🔴 相異（紅色）
+                    </button>
+                    <button onclick="setDualPen('eraser')" id="pen-eraser" class="tap-btn px-3.5 py-2 rounded-xl text-xs md:text-sm font-bold bg-gray-100 text-gray-600 border-2 border-transparent">
+                        🧹 擦除
+                    </button>
+                </div>
+
+                <div class="flex items-center flex-wrap gap-2">
+                    <!-- 平板直向/橫向切換按鈕 -->
+                    <div class="flex items-center bg-[#f0ece3] p-1 rounded-xl border border-[#d6cbb8] text-xs font-bold">
+                        <button id="layout-split" onclick="setDualLayout('split')" class="tap-btn px-2.5 py-1.5 rounded-lg bg-white text-[#5c4232] shadow-sm font-black">並排同屏</button>
+                        <button id="layout-A" onclick="setDualLayout('A')" class="tap-btn px-2.5 py-1.5 rounded-lg text-[#b85338]">只看主文本</button>
+                        <button id="layout-B" onclick="setDualLayout('B')" class="tap-btn px-2.5 py-1.5 rounded-lg text-[#1f6e5f]">只看補充文本</button>
+                    </div>
+                    <span id="markedCounter" class="text-xs font-black bg-[#f5ede0] text-[#6e4228] px-3 py-1.5 rounded-xl border border-[#dfd0b8]">
+                        🔵 0 ｜ 🔴 0
+                    </span>
+                    <button onclick="switchDualStage(2)" class="tap-btn bg-[#6b8e78] text-white text-xs md:text-sm font-black px-4 py-2 rounded-xl shadow-sm">
+                        進入第二關 ➡️
+                    </button>
+                </div>
+            </div>
+
+            <div id="dualArticlesGrid" class="grid grid-cols-2 gap-3 md:gap-4">
+                <article id="articleCardA" class="bg-[#fffaf4] ipad-panel p-4 border-t-4 border-[#d96b4d] flex flex-col">
+                    <div class="flex flex-wrap justify-between items-center border-b border-[#f0e2d2] pb-2 mb-2.5 gap-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="bg-[#d96b4d] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">主文本</span>
+                            <h3 class="text-sm md:text-base font-black text-[#b85338]">🥣 來一碗溫暖的羹湯</h3>
+                        </div>
+                        <span class="text-xs font-bold text-[#7a6b5d] bg-[#f7eedc] px-2.5 py-0.5 rounded-lg">陳維鸚</span>
+                    </div>
+                    <div id="dualTextAContainer" class="text-sm md:text-base text-[#4a3b32] space-y-2.5 max-h-[60vh] overflow-y-auto pr-1.5"></div>
+                </article>
+
+                <article id="articleCardB" class="bg-[#f7fcfa] ipad-panel p-4 border-t-4 border-[#2d8a78] flex flex-col">
+                    <div class="flex flex-wrap justify-between items-center border-b border-[#d9ebe4] pb-2 mb-2.5 gap-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="bg-[#2d8a78] text-white text-xs font-bold px-2.5 py-0.5 rounded-full">補充文本</span>
+                            <h3 class="text-sm md:text-base font-black text-[#1f6e5f]">🍍 最好的味覺禮物</h3>
+                        </div>
+                        <span class="text-xs font-bold text-[#3f665b] bg-[#e3f2ec] px-2.5 py-0.5 rounded-lg">張曼娟</span>
+                    </div>
+                    <div id="dualTextBContainer" class="text-sm md:text-base text-[#2d433b] space-y-2.5 max-h-[60vh] overflow-y-auto pr-1.5"></div>
+                </article>
+            </div>
+        </div>
+
+        <!-- 任務三第二關：雙文本比較闖關回答區 -->
+        <div id="g3-stage2" class="hidden flex-col gap-4 max-w-5xl w-full mx-auto">
+            <div class="bg-[#fffdf9] ipad-panel p-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-l-8 border-[#8c5a3c]">
+                <div>
+                    <h3 class="text-base md:text-lg font-black text-[#6e4228]">🏆 雙文本比較大挑戰：找出兩篇文章溫暖的異同！</h3>
+                    <p class="text-xs md:text-sm text-[#6b5e55] mt-0.5">完成 5 道比較題目，每答對 1 題獲得 🪙 2 枚金幣！</p>
+                </div>
+                <div class="flex items-center gap-2.5 shrink-0">
+                    <div id="quizProgressBadge" class="bg-[#f5ede0] text-[#6e4228] px-3.5 py-2 rounded-xl text-xs md:text-sm font-black border border-[#dfd0b8]">
+                        第 1 / 5 題 ｜ 🪙 0 枚
+                    </div>
+                    <button onclick="switchDualStage(1)" class="tap-btn bg-[#6b8e78] text-white text-xs md:text-sm font-bold px-4 py-2 rounded-xl">
+                        ⬅️ 回第一關看雙文本
+                    </button>
+                </div>
+            </div>
+
+            <div class="w-full bg-[#e6dccb] h-3.5 rounded-full overflow-hidden border border-[#d1c3ac]">
+                <div id="quizProgressBar" class="bg-[#3a7ca5] h-full transition-all duration-300" style="width: 20%;"></div>
+            </div>
+
+            <div id="quizCardContainer" class="bg-[#fffdf9] ipad-panel p-5 md:p-6 flex flex-col gap-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b-2 border-[#efe5d5] pb-2.5">
+                    <span id="stageTag" class="bg-[#2563eb] text-white text-xs md:text-sm font-black px-3.5 py-1 rounded-full">🔵 第 1 題</span>
+                    <span class="text-xs font-bold text-[#7a6b5d]">請點選最符合兩篇課文線索的答案</span>
+                </div>
+
+                <div class="bg-[#faf5ec] p-4 rounded-2xl border border-[#e3d4bc]">
+                    <h4 id="questionTitle" class="text-base md:text-lg font-black text-[#4a3b32] leading-relaxed"></h4>
+                    <div id="questionEvidenceBox" class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs md:text-sm"></div>
+                </div>
+
+                <div id="optionsContainer" class="grid grid-cols-1 gap-3.5"></div>
+
+                <div id="quizFeedbackBox" class="hidden p-4 rounded-2xl border-2 text-sm leading-relaxed">
+                    <div id="quizFeedbackTitle" class="font-black text-base mb-1"></div>
+                    <p id="quizFeedbackDetail" class="text-sm"></p>
+                    <div class="mt-4 flex justify-end">
+                        <button id="nextStageBtn" onclick="nextDualQuestion()" class="tap-btn bg-[#8c5a3c] text-white text-sm md:text-base font-black px-7 py-3 rounded-2xl shadow-sm">
+                            下一題 ➡️
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 全部通關總結與截圖保存畫面 -->
+            <div id="quizSummaryContainer" class="hidden bg-[#fffdf9] ipad-panel p-6 md:p-7 border-t-8 border-[#6b8e78] flex-col gap-5">
+                <div class="bg-gradient-to-br from-[#fff9eb] via-[#fef2d6] to-[#fce5b6] p-5 md:p-6 rounded-3xl border-4 border-[#e6b34c] text-center shadow-md">
+                    <div class="text-4xl md:text-5xl mb-1.5">🏆🎉🪙</div>
+                    <h3 class="text-2xl md:text-3xl font-black text-[#7a4b12]">恭喜闖關成功！</h3>
+                    <p class="text-xs md:text-sm font-bold text-[#8c5a3c] mt-1">六年級國語公開課《溫暖的滋味》全數任務達成</p>
+
+                    <div class="mt-4 inline-flex items-baseline gap-2 bg-white/95 px-6 py-3 rounded-2xl border-2 border-[#e0a83b] shadow-sm">
+                        <span class="text-sm md:text-base font-black text-[#5c4232]">三關累計獲得總金幣：</span>
+                        <span id="summaryGrandTotalCoins" class="text-3xl md:text-4xl font-black text-[#d48217]">0</span>
+                        <span class="text-base md:text-lg font-black text-[#7a4b12]">枚（滿分 30 枚）</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-4 max-w-3xl mx-auto text-xs md:text-sm">
+                        <div class="bg-white/90 p-3 rounded-xl border border-[#f0c8ba]">
+                            <div class="font-bold text-[#b85338]">🥣 第一關（主文本）</div>
+                            <div id="summaryG1Coins" class="text-base font-black text-[#c98a2c] mt-0.5">🪙 0 / 10 枚</div>
+                        </div>
+                        <div class="bg-white/90 p-3 rounded-xl border border-[#bce3d6]">
+                            <div class="font-bold text-[#1f6e5f]">🍍 第二關（補充文本）</div>
+                            <div id="summaryG2Coins" class="text-base font-black text-[#c98a2c] mt-0.5">🪙 0 / 10 枚</div>
+                        </div>
+                        <div class="bg-white/90 p-3 rounded-xl border border-[#bfdbfe]">
+                            <div class="font-bold text-[#265675]">📖 第三關（雙文本比較）</div>
+                            <div id="summaryG3Coins" class="text-base font-black text-[#c98a2c] mt-0.5">🪙 0 / 10 枚</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs md:text-sm">
+                    <div class="bg-[#fffaf4] p-4 rounded-2xl border-2 border-[#f0c8ba]">
+                        <div class="font-black text-[#b85338] mb-1.5">🔴 主文本〈來一碗溫暖的羹湯〉特色</div>
+                        <p class="text-[#4a3b32] leading-relaxed">偏重<strong>「被細心照顧」與「任性撒嬌」</strong>：母親詢問吃麵或粄條、騎車買羹湯，讓作者感受到被寵愛與依賴的幸福。</p>
+                    </div>
+                    <div class="bg-[#eff6ff] p-4 rounded-2xl border-2 border-[#bfdbfe]">
+                        <div class="font-black text-[#1d4ed8] mb-1.5">🔵 兩篇文章相似的溫暖</div>
+                        <p class="text-[#1e3a8a] leading-relaxed">都透過<strong>「食物香氣與料理準備」</strong>傳遞愛，而且兩位母親都<strong>「在乎孩子的想法與感受」</strong>，在廚房陪伴中留下深刻記憶。</p>
+                    </div>
+                    <div class="bg-[#f7fcfa] p-4 rounded-2xl border-2 border-[#bce3d6]">
+                        <div class="font-black text-[#1f6e5f] mb-1.5">🔴 補充文本〈最好的味覺禮物〉特色</div>
+                        <p class="text-[#2d433b] leading-relaxed">偏重<strong>「被信任的自信」與「手作傳承」</strong>：媽媽讓孩子試果醬調味建立自信，長大後作者親手做果汁將天然滋味傳遞給下一代。</p>
+                    </div>
+                </div>
+
+                <!-- 離堂回應：重新定義溫暖（含截圖保存提醒） -->
+                <div class="bg-[#fdf6e7] p-4 md:p-5 rounded-2xl border-2 border-[#e6be7a]">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                        <label for="reflectionInput" class="text-sm md:text-base font-black text-[#6e4228]">
+                            ✍️ 小組／個人挑戰任務：用一句話重新定義「溫暖」
+                        </label>
+                        <span class="bg-[#d9534f] text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-sm">
+                            📸 完成後請務必「截圖」保存畫面！
+                        </span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2.5">
+                        <input type="text" id="reflectionInput" maxlength="1000" placeholder="例如：我覺得溫暖不只是熱騰騰的食物，更是家人願意花時間陪伴與信任我們的心意。"
+                               class="flex-1 p-3.5 rounded-2xl border-2 border-[#d6c29f] bg-white text-sm md:text-base focus:outline-none focus:border-[#8c5a3c]">
+                        <button onclick="saveReflection()" class="tap-btn bg-[#d96b4d] text-white font-black px-6 py-3.5 rounded-2xl text-sm md:text-base shrink-0 shadow-sm">
+                            📌 展示我的溫暖定義
+                        </button>
+                    </div>
+                    <div id="savedReflectionDisplay" class="hidden mt-3.5 p-4 bg-white rounded-2xl border-2 border-[#6b8e78] shadow-sm">
+                        <div id="savedReflectionQuote" class="text-base md:text-lg font-black text-[#2b533f]"></div>
+                        <div class="mt-2.5 pt-2.5 border-t border-dashed border-[#cfe0d6] flex flex-wrap items-center justify-between gap-2 text-xs md:text-sm">
+                            <span id="savedReflectionCoinTag" class="font-black text-[#c98a2c]">🪙 三關累計總金幣：0 枚</span>
+                            <span class="font-black text-[#c9302c] bg-[#fdf2f2] px-3 py-1 rounded-xl border border-[#f5c6cb]">
+                                📸 請學生現在按下 iPad「電源鍵＋音量鍵」截圖保存此學習成果！
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-3">
+                    <button onclick="restartDualQuiz()" class="tap-btn bg-[#8c5a3c] text-white font-bold px-6 py-3 rounded-2xl text-sm md:text-base">🔄 重新挑戰第三關</button>
+                    <button onclick="switchGameView('hub')" class="tap-btn bg-[#6b8e78] text-white font-bold px-6 py-3 rounded-2xl text-sm md:text-base">🏠 返回任務大廳</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 共用彈跳視窗（全文回顧 / 單篇通關金幣 / 三關總金幣結算 / 教師 QR）     -->
+    <!-- ===================================================================== -->
+    <div id="singleTextModal" class="fixed inset-0 bg-black/55 hidden justify-center items-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl border-t-8 border-[#8c5a3c]">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <div>
+                    <h3 id="modalTextTitle" class="text-xl font-black text-[#6e4228]"></h3>
+                    <p id="modalTextAuthor" class="text-xs text-[#7a6b5d] mt-1 font-medium"></p>
+                </div>
+                <button onclick="closeSingleTextModal()" class="tap-btn text-gray-500 font-black text-xl px-3 py-1">✕</button>
+            </div>
+            <div id="modalTextBody" class="text-base leading-loose text-[#3f3832] space-y-3"></div>
+            <div class="mt-6 text-center">
+                <button onclick="closeSingleTextModal()" class="tap-btn bg-[#8c5a3c] text-white px-7 py-3 rounded-2xl text-base font-black">關閉全文，返回遊戲</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="singleSuccessModal" class="fixed inset-0 bg-black/60 hidden justify-center items-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-7 max-w-lg w-full text-center shadow-2xl border-4 border-[#6b8e78]">
+            <div id="sModalEmoji" class="text-5xl mb-2">🎉🥣📜</div>
+            <h3 id="sModalTitle" class="text-2xl font-black text-[#2b533f] mb-1">恭喜完成任務！</h3>
+            <p id="sModalSub" class="text-xs text-gray-500 mb-4"></p>
+            
+            <div class="bg-[#fcf6ef] rounded-2xl p-4 text-left text-sm space-y-2.5 mb-5 border border-[#d8b4a0]">
+                <div class="flex justify-between items-center border-b border-[#e8d8c8] pb-2">
+                    <span class="font-bold text-[#7f6050]">本關獲得金幣：</span>
+                    <span id="sModalCoins" class="text-lg font-black text-[#c98a2c]">🪙 0 枚金幣</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-[#e8d8c8] pb-2">
+                    <span class="font-bold text-[#7f6050]">驗證嘗試次數：</span>
+                    <span id="sModalAttempts" class="font-bold text-[#5b788e]">第 1 次驗證通關</span>
+                </div>
+                <div class="bg-white p-3 rounded-xl border border-[#e3d2b4]">
+                    <div class="font-bold text-[#b85338] text-xs mb-1">💰 金幣規則說明：</div>
+                    <ul class="text-xs text-[#544337] space-y-0.5">
+                        <li>• 第一次全對：<strong>10 枚金幣</strong> ｜ 第二次全對：<strong>7 枚金幣</strong></li>
+                        <li>• 第三次全對：<strong>3 枚金幣</strong> ｜ 第四次以上：<strong>0 枚金幣</strong></li>
+                    </ul>
+                    <div id="sModalExplain" class="mt-2 pt-2 border-t border-dashed border-[#dfd0b8] text-xs font-bold text-[#2b533f]"></div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2.5 justify-center">
+                <button id="sModalNextBtn" class="tap-btn bg-[#d96b4d] text-white px-6 py-3 rounded-2xl font-black text-sm md:text-base shadow-md">
+                    繼續挑戰下一個任務 ➡️
+                </button>
+                <button onclick="closeSingleSuccessModal()" class="tap-btn bg-[#efe6d5] text-[#4a3f38] px-5 py-3 rounded-2xl font-bold text-sm">
+                    留在此頁檢視
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="totalCoinsModal" class="fixed inset-0 bg-black/60 hidden justify-center items-center p-4 z-50">
+        <div class="bg-gradient-to-b from-[#fffdf8] to-[#fdf3dc] rounded-3xl p-7 max-w-lg w-full text-center shadow-2xl border-4 border-[#e6b34c]">
+            <div class="text-5xl mb-2">🏆🪙🎉</div>
+            <h3 class="text-2xl font-black text-[#7a4b12] mb-1">三關金幣累計總成績單</h3>
+            <p class="text-xs text-[#8c5a3c] mb-4">六年級國語公開課《溫暖的滋味》學習獎勵統計</p>
+
+            <div class="bg-white rounded-2xl p-4 border-2 border-[#ebd09b] mb-4 shadow-inner">
+                <div class="text-xs font-bold text-[#7a6b5d]">目前三關累計總金幣</div>
+                <div class="text-4xl font-black text-[#d48217] my-1">
+                    🪙 <span id="modalGrandCoins">0</span> <span class="text-base text-[#7a4b12]">/ 30 枚</span>
+                </div>
+                <div id="modalCheerText" class="text-xs font-bold text-[#2b533f] mt-1">繼續挑戰三個任務，收集滿滿的溫暖金幣吧！</div>
+            </div>
+
+            <div class="space-y-2 text-left text-sm mb-5">
+                <div class="flex justify-between items-center bg-[#fffaf4] p-3.5 rounded-xl border border-[#f0c8ba]">
+                    <span class="font-bold text-[#b85338]">🥣 任務一：主文本〈來一碗溫暖的羹湯〉</span>
+                    <span id="modalG1Coin" class="font-black text-[#c98a2c]">🪙 0 / 10 枚</span>
+                </div>
+                <div class="flex justify-between items-center bg-[#f5fcf9] p-3.5 rounded-xl border border-[#bce3d6]">
+                    <span class="font-bold text-[#1f6e5f]">🍍 任務二：補充文本〈最好的味覺禮物〉</span>
+                    <span id="modalG2Coin" class="font-black text-[#c98a2c]">🪙 0 / 10 枚</span>
+                </div>
+                <div class="flex justify-between items-center bg-[#f7f9fc] p-3.5 rounded-xl border border-[#bfdbfe]">
+                    <span class="font-bold text-[#265675]">📖 任務三：雙文本畫記與比較闖關</span>
+                    <span id="modalG3Coin" class="font-black text-[#c98a2c]">🪙 0 / 10 枚</span>
+                </div>
+            </div>
+
+            <button onclick="closeTotalCoinsModal()" class="tap-btn bg-[#8c5a3c] text-white px-8 py-3 rounded-2xl text-base font-black shadow-sm">
+                關閉視窗
+            </button>
+        </div>
+    </div>
+
+    <div id="qrModal" class="fixed inset-0 bg-black/55 hidden justify-center items-center p-4 z-50">
+        <div class="bg-[#fffdf9] rounded-3xl p-6 max-w-md w-full text-center shadow-2xl border-t-8 border-[#5b788e]">
+            <span class="inline-block bg-[#5b788e] text-white text-xs font-bold px-3 py-0.5 rounded-full mb-2">👩‍🏫 教師投影專用</span>
+            <h3 class="text-xl font-black text-[#3a5a78] mb-1">📱 iPad 平板掃描進場</h3>
+            <p class="text-xs text-gray-500 mb-4">學生掃描此 QR Code 即可進入 iPad 觸控專用版！</p>
+            <div class="bg-white p-4 rounded-2xl border-2 border-dashed border-[#cbbba2] inline-flex justify-center mb-4">
+                <div id="qrcode"></div>
+            </div>
+            <div class="text-left bg-[#f8f2e7] p-3 rounded-xl border border-[#dfd0b8] mb-4">
+                <label class="block text-xs font-bold text-[#7c4d3b] mb-1">🔗 公開網址連結：</label>
+                <div class="flex gap-1.5">
+                    <input type="text" id="qrUrlInput" class="flex-1 text-xs p-2.5 rounded-xl border border-[#cbbba2] bg-white">
+                    <button onclick="renderQRCode()" class="tap-btn bg-[#5b788e] text-white text-xs font-bold px-3.5 py-2 rounded-xl">更新</button>
+                </div>
+            </div>
+            <button onclick="toggleQRModal()" class="tap-btn bg-[#8c5a3c] text-white px-7 py-2.5 rounded-2xl text-sm font-black">關閉看板</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="student.js"></script>
+    <script>
+        // 1. 課文原文資料庫
+        const textAData = [
+            ["天寒時，特別想來碗羹。", "勾芡的湯汁濃稠不易散熱，即便是起鍋一會兒，碗裡也還是熱騰騰的，那溫熱滑順的湯汁從喉間滾下，彷彿便能幫身體注入暖氣。", "在宜蘭，無論是熱鬧或隱密的大街小巷，總會找到賣羹的店家。", "或許是氣候多雨溼冷的緣故，宜蘭人特別愛吃羹，因為羹湯保溫的特點，正好能滿足祛寒需求。"],
+            ["小時候，我的母親愛在冬天做羹湯。", "她會先到常去的肉販那兒預訂黑豬肉，取得後切成長條狀，泡醬醃製，之後再加入新鮮魚漿攪拌。", "家裡廚房空間狹小，母親總是坐在一張小椅子上，把大鍋放在地上，雙手奮力攪拌。", "我喜歡蹲在旁邊看母親，順便也拿根筷子亂攪。", "母親總是縱容我，還邊拌邊問：要吃麵，還是粄條？"],
+            ["當肉條和魚漿不分你我時，爐上熱鍋的水也差不多燒開了。", "我幫母親將大鍋端上，她開始像下餃子那樣，一塊一塊放下去。", "裹了魚漿的肉條原本還黏膩膩，一碰到熱水便快速結形，不一會兒工夫，廚房便充滿了香氣。", "將熟透的肉條一一撈起，放進一旁的鍋子裡，然後開始著手煮羹湯。", "每次加入的配料都有些不同，有時候是筍絲加黑木耳和大白菜，有時候是香菇加紅蘿蔔和菜頭，端視早晨至市場巡禮後的收穫而定。", "先將配料以油炒香，再將剛剛煮肉條的水倒進鍋裡，煮開後，加入調味料並勾芡，肉與羹合而為一，就是肉羹。"],
+            ["在旁等候的我當然也沒閒著，母親一個轉身，我便偷夾一塊肉丟進嘴裡。", "母親忙著顧羹湯，我接連夾了好幾個往嘴裡塞，然後溜到客廳玩，想到又再悄悄鑽入廚房。", "如此往返多次，等到肉羹正式上桌時，我也飽了。"],
+            ["煮羹湯並不難，在宜蘭是常見的家庭料理，即使主要配料不同，形式也大同小異。", "不過在羹湯調味上就千變萬化了，可說人人都有其獨特配方與味道。", "現在外食機會多了，我的母親也較少洗手做羹湯，但一聽到孩子說想吃，她總是拿著提鍋，騎腳踏車到街上買回來。", "母親很可愛，她通常只買肉羹，然後回家自己煮麵，一碗肉羹就能變出兩人份來。", "要不，還可以直接淋在白飯上當作肉羹飯，或是再多加入一些青菜，即便是別人家的肉羹，也能變出自家的風味。"],
+            ["有時想想，為什麼自己特別喜愛肉羹湯呢？", "坦白說，並不是因為它獨特的滋味，而是還能跟母親任性撒嬌，這可是世上最幸福的事了。"]
+        ];
+
+        const textBData = [
+            ["小小的廚房堆著一顆顆快遞送到的有機金鑽鳳梨，顯得擁擠許多。", "我和朋友們賣力的切掉鳳梨頭，削去鳳梨皮，將鳳梨心除去後，切成一塊一塊，裝進玻璃缸裡備用。", "鳳梨的甜香氣味，此刻已充滿整個空間，大家興奮的將鳳梨塊和開水倒進果汁機裡，一會兒工夫，淺黃色的鳳梨汁就完成了。", "一杯杯盛裝在透明杯子裡的果汁，上方被一層厚厚的雪白泡沫覆蓋著，這就是孩子們專屬的下午茶飲料。"],
+            ["果汁機裡的刀刃一轉動起來時，我就彷彿又嗅到了童年水果的味道。", "我記得爸爸參加公司抽獎，帶了一臺果汁機回來，媽媽特地從市場買回許多黃綠色的軟芭樂。", "我們圍成一圈，看著媽媽將一顆顆洗乾淨的芭樂切成小塊狀，再一整盤投進玻璃容器裡，接著一按開關，塊狀的芭樂轉瞬間「粉身碎骨」，成為一杯杯好喝的果汁。", "那時候的芭樂也許不好看，但是真的好香啊！"],
+            ["媽媽和鄰居媽媽一起上市場，有時候買一大袋暗紅的李子回家，我們見了總要退避三舍。", "李子雖然美，卻酸得讓人皺眉，縱使大人不斷遊說：「吃李子對女孩子好，皮膚水嫩水嫩的。」我們這群女生還是躲得遠遠的。", "然而，當廚房開了火，媽媽把最大的鍋子搬出來，我們就從四面八方湧進來，像小鳥一樣的雀躍。", "大家都搶著幫忙，自願將李子切開，把果核取出來，看著媽媽熬煮李子果醬。", "因為李子很酸，煮一鍋李子果醬，得用上一包黃砂糖，當果肉融化以後，混合著焦糖，上升的氣味實在太甜美了。"],
+            ["媽媽一邊熬煮，一邊調味，她會用小湯匙舀出一勺，讓我嘗嘗味道。", "「還是太酸了！」我搖搖頭。", "過了一會兒再嘗嘗，發出專業的判斷：「現在差不多了。」", "於是，火熄了，等待果醬涼了以後裝進瓶子裡。", "只有我嘗過熱騰騰的果醬滋味，而媽媽總是信任我的味覺，這讓我建立起小小的自信。"],
+            ["現今隨處可見的茶飲店，人手一杯調製飲料。", "我擔心孩子們從小被那些化學氣味、色素麻痺了味覺，於是，邀請好友一起製作天然的果汁，讓他們嘗一嘗食物真正的味道。", "讓他們一邊啜飲，一邊想像植物從泥土裡生成，開花之後結果，果實慢慢生長，在陽光照射下變得甜蜜，在黑夜星空裡變得堅強，終於成為一顆美好的果實，才能噴發出這樣濃烈的香氣，才能流淌出如此豐沛的汁液。"]
+        ];
+
+        // 2. 任務一 & 任務二：課文大意理解與深究題庫
+        const taskCompQuestions = {
+            1: [
+                {
+                    q: "【第一段・段落大意】宜蘭人為什麼特別愛吃羹湯？",
+                    options: [
+                        "A. 因為宜蘭的海鮮與黑豬肉價格最便宜",
+                        "B. 因為宜蘭氣候多雨溼冷，勾芡濃稠的羹湯保溫不易散熱，正好能滿足祛寒需求",
+                        "C. 因為宜蘭的餐廳只賣肉羹，沒有賣其他湯麵",
+                        "D. 因為羹湯不需要加任何調味料就很好喝"
+                    ],
+                    correct: 1,
+                    explain: "📖 解析：第一段提到「或許是氣候多雨溼冷的緣故，宜蘭人特別愛吃羹，因為羹湯保溫的特點，正好能滿足祛寒需求。」"
+                },
+                {
+                    q: "【第二～四段・細節理解】小時候母親在冬天做肉羹湯時，作者在廚房裡有哪些互動表現？",
+                    options: [
+                        "A. 嫌廚房太小太熱，一直待在客廳看電視不肯進廚房",
+                        "B. 拿筷子跟著亂攪肉漿、幫忙端大鍋，還趁母親轉身時偷夾熟肉條吃",
+                        "C. 負責去市場挑選黑豬肉與新鮮魚漿",
+                        "D. 嫌母親煮的配料每次都不一樣，拒絕吃肉羹"
+                    ],
+                    correct: 1,
+                    explain: "📖 解析：作者喜歡蹲在旁邊拿筷子亂攪、幫母親端大鍋，還趁母親顧羹湯時偷夾肉條往嘴裡塞，展現親子間親密又俏皮的互動。"
+                },
+                {
+                    q: "【第五段・人物性格推論】現在外食機會多了，母親較少親自做羹湯，但只要聽到孩子想吃，她會怎麼做？這表現出母親什麼樣的特質？",
+                    options: [
+                        "A. 騎腳踏車買肉羹回來，自己煮麵或加青菜變出兩人份，展現節儉又疼愛孩子的細心",
+                        "B. 叫孩子自己走路去街上買，順便幫全家人買晚餐",
+                        "C. 覺得煮麵太麻煩，直接買現成的便當給孩子吃",
+                        "D. 規定孩子只能在過年時才能吃肉羹"
+                    ],
+                    correct: 0,
+                    explain: "📖 解析：母親拿提鍋騎車買肉羹，再回家自己煮麵或加青菜變出自家風味，處處為孩子著想。"
+                },
+                {
+                    q: "【第六段・主旨深究】作者在文章結尾說自己特別喜愛肉羹湯，「並不是因為它獨特的滋味」，最主要的原因是什麼？",
+                    options: [
+                        "A. 因為肉羹湯是宜蘭最有名的觀光美食",
+                        "B. 因為透過這碗羹湯，還能跟母親任性撒嬌，感受到被疼愛的幸福",
+                        "C. 因為作者學會了怎麼自己煮出一大鍋肉羹",
+                        "D. 因為作者喜歡偷吃剛起鍋的肉條"
+                    ],
+                    correct: 1,
+                    explain: "📖 解析：全文畫龍點睛的主旨就在最後一句：「而是還能跟母親任性撒嬌，這可是世上最幸福的事了。」"
+                }
+            ],
+            2: [
+                {
+                    q: "【⏳ 時間軸與寫作順序測試】這篇文章開頭寫「現在」，接著讓作者想起「自己的童年」。請選出符合課文敘事時間先後順序的排列：",
+                    options: [
+                        "A. 童年（喝軟芭樂汁、熬李子果醬） ➔ 現在（打金鑽鳳梨汁） ➔ 未來（開果汁店）",
+                        "B. 現在（和朋友切鳳梨打果汁） ➔ 倒敘想起童年（抽獎果汁機打軟芭樂、熬李子果醬） ➔ 回到現在（做天然果汁給孩子喝）",
+                        "C. 現在（做李子果醬給孩子） ➔ 童年（買金鑽鳳梨） ➔ 現在（抽獎獲得果汁機）",
+                        "D. 童年（喝茶飲店飲料） ➔ 現在（跟鄰居媽媽買李子） ➔ 未來（種植鳳梨）"
+                    ],
+                    correct: 1,
+                    explain: "⏳ 時間軸解析：課文開頭是「現在」（與朋友切有機金鑽鳳梨打果汁），聽到果汁機刀刃轉動聲而「倒敘想起童年」（爸爸抽獎帶回果汁機打軟芭樂、媽媽熬李子果醬），最後再回到「現在」為孩子手作天然果汁。"
+                },
+                {
+                    q: "【情節轉折理解】文章中，女生們原本看到暗紅的李子「退避三舍」，後來為什麼又「像小鳥一樣的雀躍」湧進廚房？",
+                    options: [
+                        "A. 因為大人說吃李子可以讓考試考一百分",
+                        "B. 因為媽媽搬出大鍋準備熬煮李子果醬，大家搶著幫忙去核並期待甜美的焦糖果香",
+                        "C. 因為鄰居媽媽把李子全部拿去換成軟芭樂了",
+                        "D. 因為李子放了幾天之後自己變甜了"
+                    ],
+                    correct: 1,
+                    explain: "📖 解析：生李子太酸讓大家躲得遠遠的，但一聽到要加黃砂糖熬煮成香甜的李子果醬，孩子們立刻熱情參與動手幫忙！"
+                },
+                {
+                    q: "【人物情感深究】媽媽熬煮李子果醬時，用小湯匙舀出一勺讓作者試味道並採用她的判斷，這對作者產生了什麼影響？",
+                    options: [
+                        "A. 讓作者覺得媽媽煮飯太慢，以後不想進廚房",
+                        "B. 因為媽媽總是信任她的味覺，讓作者建立起小小的自信",
+                        "C. 讓作者發現自己其實不喜歡吃甜食",
+                        "D. 讓作者決定長大後要當專業的果醬工廠老闆"
+                    ],
+                    correct: 1,
+                    explain: "📖 解析：原文第四段明確寫道：「只有我嘗過熱騰騰的果醬滋味，而媽媽總是信任我的味覺，這讓我建立起小小的自信。」"
+                },
+                {
+                    q: "【主旨意涵深究】作者擔心現在的孩子被茶飲店的化學氣味與色素麻痺味覺，於是親手製作天然果汁，這份「最好的味覺禮物」包含什麼心意？",
+                    options: [
+                        "A. 希望孩子學會自己上網訂購有機水果",
+                        "B. 讓孩子品嘗食物真正的味道，並學會感恩陽光、泥土與大自然的孕育",
+                        "C. 證明自己打的果汁比外面飲料店賣得更貴",
+                        "D. 希望孩子以後再也不要喝任何飲料"
+                    ],
+                    correct: 1,
+                    explain: "📖 解析：作者將童年從母親那裡獲得的味覺記憶與愛傳承給下一代，讓孩子體會天然果實得來不易的甜美與感恩。"
+                }
+            ]
+        };
+
+        // 3. 10 句溫暖線索卡片資料
+        const singleGameCards = {
+            1: [
+                { id: "g1_c1", target: "body", text: "「勾芡的湯汁濃稠不易散熱……彷彿便能幫身體注入暖氣。」" },
+                { id: "g1_c2", target: "body", text: "「因為羹湯保溫的特點，正好能滿足祛寒需求。」" },
+                { id: "g1_c3", target: "action", text: "「母親總是縱容我，還邊拌邊問：要吃麵，還是粄條？」" },
+                { id: "g1_c4", target: "action", text: "「一聽到孩子說想吃，她總是拿著提鍋，騎腳踏車到街上買回來。」" },
+                { id: "g1_c5", target: "action", text: "「她通常只買肉羹，然後回家自己煮麵，一碗肉羹就能變出兩人份來。」" },
+                { id: "g1_c6", target: "participate", text: "「我喜歡蹲在旁邊看母親，順便也拿根筷子亂攪。」" },
+                { id: "g1_c7", target: "participate", text: "「我幫母親將大鍋端上，她開始像下餃子那樣，一塊一塊放下去。」" },
+                { id: "g1_c8", target: "heart", text: "「並不是因為它獨特的滋味，而是還能跟母親任性撒嬌，這可是世上最幸福的事了。」" },
+                { id: "g1_c9", target: "distractor", text: "「家裡廚房空間狹小，母親總是坐在一張小椅子上，把大鍋放在地上……」" },
+                { id: "g1_c10", target: "distractor", text: "「每次加入的配料都有些不同，有時候是筍絲加黑木耳和大白菜……」" }
+            ],
+            2: [
+                { id: "g2_c1", target: "body", text: "「果汁機裡的刀刃一轉動起來時，我就彷彿又嗅到了童年水果的味道。」" },
+                { id: "g2_c2", target: "body", text: "「當果肉融化以後，混合著焦糖，上升的氣味實在太甜美了。」" },
+                { id: "g2_c3", target: "action", text: "「媽媽一邊熬煮，一邊調味，她會用小湯匙舀出一勺，讓我嘗嘗味道。」" },
+                { id: "g2_c4", target: "action", text: "「我擔心孩子們從小被那些化學氣味、色素麻痺了味覺，於是，邀請好友一起製作天然的果汁，讓他們嘗一嘗食物真正的味道。」" },
+                { id: "g2_c5", target: "participate", text: "「我們圍成一圈，看著媽媽將一顆顆洗乾淨的芭樂切成小塊狀，再一整盤投進玻璃容器裡……」" },
+                { id: "g2_c6", target: "participate", text: "「我們就從四面八方湧進來，像小鳥一樣的雀躍。大家都搶著幫忙，自願將李子切開，把果核取出來……」" },
+                { id: "g2_c7", target: "heart", text: "「只有我嘗過熱騰騰的果醬滋味，而媽媽總是信任我的味覺，這讓我建立起小小的自信。」" },
+                { id: "g2_c8", target: "heart", text: "「讓他們一邊啜飲，一邊想像植物從泥土裡生成，開花之後結果……終於成為一顆美好的果實……」" },
+                { id: "g2_c9", target: "distractor", text: "「小小的廚房堆著一顆顆快遞送到的有機金鑽鳳梨，顯得擁擠許多。」" },
+                { id: "g2_c10", target: "distractor", text: "「因為李子很酸，煮一鍋李子果醬，得用上一包黃砂糖……」" }
+            ]
+        };
+
+        let g1Coins = 0, g2Coins = 0, g3Coins = 0;
+        let singleState = {
+            1: { correct: 0, attempts: 0, compIdx: 0, selectedCardId: null },
+            2: { correct: 0, attempts: 0, compIdx: 0, selectedCardId: null }
+        };
+
+        // 4. 全域金幣統計更新
+        function updateAllCoinsSummary() {
+            const grandTotal = g1Coins + g2Coins + g3Coins;
+            document.getElementById('globalTotalCoinsDisplay').innerText = grandTotal;
+            document.getElementById('hub-g1-badge').innerText = `🪙 ${g1Coins} / 10 枚`;
+            document.getElementById('hub-g2-badge').innerText = `🪙 ${g2Coins} / 10 枚`;
+            document.getElementById('hub-g3-badge').innerText = `🪙 ${g3Coins} / 10 枚`;
+
+            document.getElementById('modalGrandCoins').innerText = grandTotal;
+            document.getElementById('modalG1Coin').innerText = `🪙 ${g1Coins} / 10 枚`;
+            document.getElementById('modalG2Coin').innerText = `🪙 ${g2Coins} / 10 枚`;
+            document.getElementById('modalG3Coin').innerText = `🪙 ${g3Coins} / 10 枚`;
+
+            let cheer = "繼續挑戰三個任務，收集滿滿的溫暖金幣吧！";
+            if (grandTotal >= 25) cheer = "🌟 太驚人了！你是頂級的「跨文本閱讀小達人」！";
+            else if (grandTotal >= 15) cheer = "👏 表現非常優秀！已經累積超過一半的溫暖金幣囉！";
+            else if (grandTotal > 0) cheer = "👍 很棒的開始！繼續完成其他關卡累積更多金幣吧！";
+            document.getElementById('modalCheerText').innerText = cheer;
+
+            document.getElementById('summaryGrandTotalCoins').innerText = grandTotal;
+            document.getElementById('summaryG1Coins').innerText = `🪙 ${g1Coins} / 10 枚`;
+            document.getElementById('summaryG2Coins').innerText = `🪙 ${g2Coins} / 10 枚`;
+            document.getElementById('summaryG3Coins').innerText = `🪙 ${g3Coins} / 10 枚`;
+            document.getElementById('savedReflectionCoinTag').innerText = `🪙 三關累計總金幣：${grandTotal} 枚`;
+        }
+
+        function openTotalCoinsModal() {
+            updateAllCoinsSummary();
+            const m = document.getElementById('totalCoinsModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function closeTotalCoinsModal() {
+            const m = document.getElementById('totalCoinsModal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        function switchGameView(viewName) {
+            ['hub', 'game1', 'game2', 'game3'].forEach(v => {
+                const sec = document.getElementById(`view-${v}`);
+                const btn = document.getElementById(`nav-${v}`);
+                if (v === viewName) {
+                    sec.classList.remove('hidden');
+                    sec.classList.add('flex');
+                    btn.classList.add('bg-[#8c5a3c]', 'text-white', 'shadow-sm', 'font-black');
+                    btn.classList.remove('text-[#7c4d3b]', 'text-[#1f6e5f]', 'text-[#265675]', 'font-bold');
+                } else {
+                    sec.classList.add('hidden');
+                    sec.classList.remove('flex');
+                    btn.classList.remove('bg-[#8c5a3c]', 'text-white', 'shadow-sm', 'font-black');
+                    btn.classList.add('font-bold');
+                    if (v === 'game1') btn.classList.add('text-[#7c4d3b]');
+                    if (v === 'game2') btn.classList.add('text-[#1f6e5f]');
+                    if (v === 'game3') btn.classList.add('text-[#265675]');
+                }
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 5. 閱讀確認與第一關選擇題（選項隨機洗牌 + 無鎖死限制）
+        function toggleSingleUnlock(gameNum) {
+            const chk = document.getElementById(`g${gameNum}-readCheck`);
+            const btn = document.getElementById(`g${gameNum}-unlockBtn`);
+            const activeBg = gameNum === 1 ? 'bg-[#d96b4d]' : 'bg-[#2d8a78]';
+            if (chk.checked) {
+                btn.disabled = false;
+                btn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                btn.classList.add(activeBg, 'text-white', 'cursor-pointer');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                btn.classList.remove(activeBg, 'text-white', 'cursor-pointer');
+            }
+        }
+
+        function startTaskCompQuiz(gameNum) {
+            singleState[gameNum].compIdx = 0;
+            document.getElementById(`g${gameNum}-preRead`).classList.add('hidden');
+            const compEl = document.getElementById(`g${gameNum}-compQuiz`);
+            compEl.classList.remove('hidden');
+            compEl.classList.add('flex');
+            renderTaskCompQ(gameNum);
+        }
+
+        function reopenTaskCompQuiz(gameNum) {
+            singleState[gameNum].compIdx = 0;
+            document.getElementById(`g${gameNum}-main`).classList.add('hidden');
+            document.getElementById(`g${gameNum}-main`).classList.remove('flex');
+            const compEl = document.getElementById(`g${gameNum}-compQuiz`);
+            compEl.classList.remove('hidden');
+            compEl.classList.add('flex');
+            renderTaskCompQ(gameNum);
+        }
+
+        function renderTaskCompQ(gameNum) {
+            const list = taskCompQuestions[gameNum];
+            const idx = singleState[gameNum].compIdx;
+            const item = list[idx];
+
+            document.getElementById(`g${gameNum}-compBadge`).innerText = `第 ${idx + 1} / ${list.length} 題`;
+            document.getElementById(`g${gameNum}-compQTitle`).innerText = item.q;
+
+            // 每次選項隨機洗牌變動位置
+            const optionItems = item.options.map((rawText, oIdx) => ({
+                cleanText: rawText.replace(/^[A-D]\.\s*/, ''),
+                isCorrect: oIdx === item.correct
+            }));
+            for (let i = optionItems.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [optionItems[i], optionItems[j]] = [optionItems[j], optionItems[i]];
+            }
+            const letters = ['A', 'B', 'C', 'D'];
+
+            const optWrap = document.getElementById(`g${gameNum}-compOptions`);
+            optWrap.innerHTML = '';
+            optionItems.forEach((optObj, displayIdx) => {
+                const btn = document.createElement('button');
+                btn.className = 'tap-btn text-left p-4 bg-white border-2 border-[#dfd0b8] rounded-2xl text-sm md:text-base font-bold text-[#423730] leading-relaxed';
+                btn.innerText = `${letters[displayIdx]}. ${optObj.cleanText}`;
+                btn.onclick = () => {
+                    optWrap.querySelectorAll('button').forEach(b => {
+                        b.classList.remove('bg-[#e6f4ea]', 'border-[#34a853]', 'text-[#137333]', 'bg-[#fef7e0]', 'border-[#fbbc04]', 'text-[#7a5200]');
+                        b.classList.add('bg-white', 'border-[#dfd0b8]');
+                    });
+
+                    const isRight = optObj.isCorrect;
+                    recordAnswer('choice', gameNum, String(idx + 1), { question: item.q, answer: optObj.cleanText, correct: isRight, total: list.length });
+                    if (isRight) {
+                        btn.classList.remove('bg-white', 'border-[#dfd0b8]');
+                        btn.classList.add('bg-[#e6f4ea]', 'border-[#34a853]', 'text-[#137333]');
+                    } else {
+                        btn.classList.remove('bg-white', 'border-[#dfd0b8]');
+                        btn.classList.add('bg-[#fef7e0]', 'border-[#fbbc04]', 'text-[#7a5200]');
+                    }
+
+                    const fb = document.getElementById(`g${gameNum}-compFeedback`);
+                    fb.classList.remove('hidden', 'bg-[#e6f4ea]', 'border-[#34a853]', 'text-[#137333]', 'bg-[#fef7e0]', 'border-[#fbbc04]', 'text-[#7a5200]');
+                    fb.classList.add(...(isRight ? ['bg-[#e6f4ea]', 'border-[#34a853]', 'text-[#137333]'] : ['bg-[#fef7e0]', 'border-[#fbbc04]', 'text-[#7a5200]']));
+                    document.getElementById(`g${gameNum}-compFbTitle`).innerText = isRight ? "🎉 想法與課文一致！來看看原文線索：" : "💡 你的想法很特別！也可以對照看看課文線索（或點選其他選項）：";
+                    document.getElementById(`g${gameNum}-compFbDetail`).innerText = item.explain;
+                    document.getElementById(`g${gameNum}-compNextBtn`).innerText = idx < list.length - 1 ? "下一題 ➡️" : "進入第二關：找出溫暖的地方 ➡️";
+                };
+                optWrap.appendChild(btn);
+            });
+
+            document.getElementById(`g${gameNum}-compFeedback`).classList.add('hidden');
+        }
+
+        function nextTaskCompQ(gameNum) {
+            const list = taskCompQuestions[gameNum];
+            if (singleState[gameNum].compIdx < list.length - 1) {
+                singleState[gameNum].compIdx++;
+                renderTaskCompQ(gameNum);
+            } else {
+                document.getElementById(`g${gameNum}-compQuiz`).classList.add('hidden');
+                document.getElementById(`g${gameNum}-compQuiz`).classList.remove('flex');
+                const mainEl = document.getElementById(`g${gameNum}-main`);
+                mainEl.classList.remove('hidden');
+                mainEl.classList.add('flex');
+                if (document.getElementById(`g${gameNum}-pool`).children.length === 0 && singleState[gameNum].correct === 0) {
+                    resetSingleGame(gameNum);
+                }
+            }
+        }
+
+        // 6. iPad「點選卡片 ➔ 點選分類框」核心互動邏輯
+        function clearCardSelection(gameNum) {
+            singleState[gameNum].selectedCardId = null;
+            document.querySelectorAll(`.clue-card[data-game="${gameNum}"]`).forEach(c => c.classList.remove('is-selected'));
+            document.querySelectorAll(`.cat-box[data-game="${gameNum}"]`).forEach(box => {
+                box.classList.remove('ready-to-receive');
+                const hint = box.querySelector('.put-hint');
+                if (hint) hint.innerText = "點此放入";
+            });
+            document.getElementById(`g${gameNum}-returnBtn`).classList.add('hidden');
+        }
+
+        function handleCardTap(ev, gameNum, cardId) {
+            ev.stopPropagation();
+            const card = document.getElementById(cardId);
+            if (!card || card.getAttribute('data-locked') === 'true') return;
+
+            if (singleState[gameNum].selectedCardId === cardId) {
+                clearCardSelection(gameNum);
+                document.getElementById(`g${gameNum}-feedback`).innerText = "👆 已取消選取，請點選任一張句子卡片！";
+                return;
+            }
+
+            clearCardSelection(gameNum);
+            singleState[gameNum].selectedCardId = cardId;
+            card.classList.add('is-selected');
+
+            document.querySelectorAll(`.cat-box[data-game="${gameNum}"]`).forEach(box => {
+                box.classList.add('ready-to-receive');
+                const hint = box.querySelector('.put-hint');
+                if (hint) hint.innerText = "👇 點這裡放入！";
+            });
+
+            if (card.parentElement.id !== `g${gameNum}-pool`) {
+                document.getElementById(`g${gameNum}-returnBtn`).classList.remove('hidden');
+            }
+            document.getElementById(`g${gameNum}-feedback`).innerText = "✨ 已選取句子！請直接點選右邊對應的分類框放入：";
+        }
+
+        function handleCategoryTap(gameNum, category) {
+            const selId = singleState[gameNum].selectedCardId;
+            if (!selId) {
+                document.getElementById(`g${gameNum}-feedback`).innerText = "💡 請先點選左邊的一張句子卡片，再點選這裡的分類框喔！";
+                return;
+            }
+            const card = document.getElementById(selId);
+            const targetBox = document.querySelector(`.cat-box[data-game="${gameNum}"][data-category="${category}"]`);
+            if (card && targetBox && card.getAttribute('data-locked') !== 'true') {
+                targetBox.querySelector('.target-slot').appendChild(card);
+                clearCardSelection(gameNum);
+                document.getElementById(`g${gameNum}-feedback`).innerText = "✅ 已放入分類框！請繼續點選下一張句子卡片，或按「驗證答案」。";
+            }
+        }
+
+        function handlePoolTap(ev, gameNum) {
+            if (ev.target.id === `g${gameNum}-pool` && singleState[gameNum].selectedCardId) {
+                returnSelectedToPool(gameNum);
+            }
+        }
+
+        function returnSelectedToPool(gameNum) {
+            const selId = singleState[gameNum].selectedCardId;
+            if (!selId) return;
+            const card = document.getElementById(selId);
+            if (card && card.getAttribute('data-locked') !== 'true') {
+                document.getElementById(`g${gameNum}-pool`).appendChild(card);
+                clearCardSelection(gameNum);
+                document.getElementById(`g${gameNum}-feedback`).innerText = "↩️ 已將卡片放回待分類區！";
+            }
+        }
+
+        function resetSingleGame(gameNum) {
+            clearCardSelection(gameNum);
+            const pool = document.getElementById(`g${gameNum}-pool`);
+            pool.innerHTML = '';
+            document.querySelectorAll(`.cat-box[data-game="${gameNum}"] .target-slot`).forEach(slot => slot.innerHTML = '');
+
+            const cardsCopy = [...singleGameCards[gameNum]];
+            for (let i = cardsCopy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cardsCopy[i], cardsCopy[j]] = [cardsCopy[j], cardsCopy[i]];
+            }
+
+            const cardBg = gameNum === 1 ? 'bg-[#d96b4d]' : 'bg-[#2e8575]';
+            cardsCopy.forEach(item => {
+                const div = document.createElement('div');
+                div.id = item.id;
+                div.className = `clue-card ${cardBg} text-white p-3.5 text-sm leading-relaxed font-medium shadow-sm`;
+                div.setAttribute('data-game', gameNum);
+                div.setAttribute('data-target', item.target);
+                div.setAttribute('data-locked', 'false');
+                div.innerText = item.text;
+                div.onclick = (ev) => handleCardTap(ev, gameNum, item.id);
+                pool.appendChild(div);
+            });
+
+            singleState[gameNum] = { ...singleState[gameNum], correct: 0, attempts: 0, selectedCardId: null };
+            if (gameNum === 1) g1Coins = 0; else g2Coins = 0;
+            updateAllCoinsSummary();
+            document.getElementById(`g${gameNum}-coin`).innerText = `🪙 0`;
+            document.getElementById(`g${gameNum}-score`).innerText = `0 / 10`;
+            document.getElementById(`g${gameNum}-feedback`).innerText = "👆 請先點選下方「待分類課文句子」中的任一張卡片！";
+        }
+
+        function verifySingleGame(gameNum) {
+            clearCardSelection(gameNum);
+            const boxes = document.querySelectorAll(`.cat-box[data-game="${gameNum}"]`);
+            let placed = 0;
+            boxes.forEach(b => placed += b.querySelectorAll('.clue-card').length);
+
+            if (placed === 0) {
+                document.getElementById(`g${gameNum}-feedback`).innerText = "💡 請先點選句子卡片並放入右側分類框中，再點擊「驗證答案」喔！";
+                return;
+            }
+
+            const placements = Array.from(boxes).flatMap(box =>
+                Array.from(box.querySelectorAll('.clue-card'), card => ({
+                    text: card.innerText.replace(/^✅ /, ''),
+                    category: box.dataset.category,
+                    expected: card.dataset.target
+                }))
+            );
+            const state = singleState[gameNum];
+            state.attempts++;
+            let incorrect = 0;
+            let lockedTotal = 0;
+            const defaultBg = gameNum === 1 ? 'bg-[#d96b4d]' : 'bg-[#2e8575]';
+            const lockedBg = gameNum === 1 ? 'bg-[#6b8e78]' : 'bg-[#3a7ca5]';
+
+            boxes.forEach(box => {
+                const expected = box.getAttribute('data-category');
+                box.querySelectorAll('.clue-card').forEach(card => {
+                    const target = card.getAttribute('data-target');
+                    if (target === expected && card.getAttribute('data-locked') !== 'true') {
+                        card.setAttribute('data-locked', 'true');
+                        card.classList.remove(defaultBg, 'bg-[#c94a4a]');
+                        card.classList.add(lockedBg, 'cursor-default');
+                        card.innerText = "✅ " + card.innerText;
+                    } else if (target !== expected && card.getAttribute('data-locked') !== 'true') {
+                        incorrect++;
+                        card.classList.add('bg-[#c94a4a]');
+                        setTimeout(() => card.classList.remove('bg-[#c94a4a]'), 500);
+                        document.getElementById(`g${gameNum}-pool`).appendChild(card);
+                    }
+                    if (card.getAttribute('data-locked') === 'true') lockedTotal++;
+                });
+            });
+
+            recordAnswer('classification', gameNum, '分類', { placements, correct: lockedTotal, incorrect, attempt: state.attempts, total: 10 });
+            state.correct = lockedTotal;
+            document.getElementById(`g${gameNum}-score`).innerText = `${lockedTotal} / 10`;
+
+            if (incorrect > 0) {
+                document.getElementById(`g${gameNum}-feedback`).innerText = `❌ 第 ${state.attempts} 次驗證：有 ${incorrect} 張卡片放錯位置囉（已退回左側）！想一想，為什麼讓主角覺得溫暖？再試一次！`;
+            } else if (lockedTotal < 10) {
+                document.getElementById(`g${gameNum}-feedback`).innerText = `✨ 第 ${state.attempts} 次驗證：太棒了！目前已確認 ${lockedTotal} 張正確，請繼續點選剩下的卡片！`;
+            }
+
+            if (lockedTotal === 10) {
+                let earned = 0, explain = "";
+                if (state.attempts === 1) { earned = 10; explain = "🌟 第一次驗證就全部答對，獲得最高 10 枚金幣！"; }
+                else if (state.attempts === 2) { earned = 7; explain = "👏 第二次驗證成功全對，獲得 7 枚金幣！"; }
+                else if (state.attempts === 3) { earned = 3; explain = "👍 第三次驗證成功全對，獲得 3 枚金幣！"; }
+                else { earned = 0; explain = `📖 共驗證 ${state.attempts} 次（四次以上），獲得 0 枚金幣，請重新閱讀文本再挑戰拿高分喔！`; }
+
+                if (gameNum === 1) g1Coins = earned; else g2Coins = earned;
+                updateAllCoinsSummary();
+                document.getElementById(`g${gameNum}-coin`).innerText = `🪙 ${earned}`;
+
+                setTimeout(() => {
+                    document.getElementById('sModalEmoji').innerText = gameNum === 1 ? "🎉🥣📜" : "🎉🍍📜";
+                    document.getElementById('sModalTitle').innerText = gameNum === 1 ? "任務一通關！主文本線索完成" : "任務二通關！補充文本線索完成";
+                    document.getElementById('sModalSub').innerText = gameNum === 1 ? "〈來一碗溫暖的羹湯〉溫暖分類達成" : "〈最好的味覺禮物〉溫暖分類達成";
+                    document.getElementById('sModalCoins').innerText = `🪙 ${earned} 枚金幣`;
+                    document.getElementById('sModalAttempts').innerText = `第 ${state.attempts} 次驗證全對`;
+                    document.getElementById('sModalExplain').innerText = explain;
+
+                    const nextBtn = document.getElementById('sModalNextBtn');
+                    if (gameNum === 1) {
+                        nextBtn.innerText = "繼續挑戰任務二：補充文本 ➡️";
+                        nextBtn.onclick = () => { closeSingleSuccessModal(); switchGameView('game2'); };
+                    } else {
+                        nextBtn.innerText = "繼續挑戰任務三：雙文本比較 ➡️";
+                        nextBtn.onclick = () => { closeSingleSuccessModal(); switchGameView('game3'); };
+                    }
+
+                    const modal = document.getElementById('singleSuccessModal');
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }, 350);
+            }
+        }
+
+        function closeSingleSuccessModal() {
+            const modal = document.getElementById('singleSuccessModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function openSingleTextModal(gameNum) {
+            const isA = gameNum === 1;
+            document.getElementById('modalTextTitle').innerText = isA ? "📜 主文本：〈來一碗溫暖的羹湯〉" : "📜 補充文本：〈最好的味覺禮物〉";
+            document.getElementById('modalTextAuthor').innerText = isA ? "作者：陳維鸚" : "改寫自張曼娟《我的手作年代》";
+            const body = document.getElementById('modalTextBody');
+            body.innerHTML = '';
+            (isA ? textAData : textBData).forEach(pArr => {
+                const p = document.createElement('p');
+                p.style.textIndent = '2em';
+                p.innerText = pArr.join('');
+                body.appendChild(p);
+            });
+            const modal = document.getElementById('singleTextModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSingleTextModal() {
+            const modal = document.getElementById('singleTextModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // 7. 任務三：雙文本畫重點 + 平板視野模式切換 + 比較闖關
+        let currentPen = 'same';
+        const dualQuizQuestions = [
+            {
+                tag: "🔵 第 1 題：尋找相似的溫暖",
+                tagColor: "bg-[#2563eb]",
+                question: "比較〈來一碗溫暖的羹湯〉和〈最好的味覺禮物〉，兩篇文章的母親都透過什麼方式傳遞「相似的溫暖」？",
+                evidenceA: "🥣 主文本〈來一碗溫暖的羹湯〉：母親在廚房雙手奮力攪拌肉漿、煮出熱騰騰的肉羹湯，甚至騎車到街上買回來。",
+                evidenceB: "🍍 補充文本〈最好的味覺禮物〉：媽媽切芭樂打果汁、搬出大鍋熬煮酸甜的李子果醬，廚房充滿甜美香氣。",
+                options: [
+                    "A. 兩位母親都去餐廳買最昂貴的料理給孩子吃",
+                    "B. 兩位母親都透過「準備食物與廚房陪伴」傳達對孩子的關愛",
+                    "C. 兩位母親都嚴格規定孩子不能進入廚房幫忙",
+                    "D. 兩位母親都只做自己喜歡吃的食物，不管孩子喜好"
+                ],
+                correctIndex: 1,
+                explanation: "答對了！兩篇文本雖然料理不同（熱肉羹 vs. 果汁與果醬），但母親都是透過「用心準備食物」與「廚房裡的溫暖陪伴」，讓孩子感受到滿滿的愛。"
+            },
+            {
+                tag: "🔵 第 2 題：人物互動的相似點",
+                tagColor: "bg-[#2563eb]",
+                question: "主文本中母親邊拌肉漿邊問：「要吃麵，還是粄條？」；補充文本中媽媽舀一勺果醬讓作者試味道。這兩個情節有什麼「相似之處」？",
+                evidenceA: "🥣 主文本〈來一碗溫暖的羹湯〉：「母親總是縱容我，還邊拌邊問：要吃麵，還是粄條？」",
+                evidenceB: "🍍 補充文本〈最好的味覺禮物〉：「媽媽一邊熬煮，一邊調味，她會用小湯匙舀出一勺，讓我嘗嘗味道。」",
+                options: [
+                    "A. 兩位母親都不會煮飯，需要孩子教她們",
+                    "B. 兩位母親都在乎孩子的想法與感受，讓孩子參與其中",
+                    "C. 兩位母親都在測試孩子是不是很挑食",
+                    "D. 兩位母親都覺得廚房太擠，想趕快結束料理"
+                ],
+                correctIndex: 1,
+                explanation: "太棒了！無論是詢問孩子的飲食喜好，還是邀請孩子一起試味道，兩位母親都「尊重並重視孩子的感受」，這正是讓主角覺得被在乎的溫暖來源！"
+            },
+            {
+                tag: "🔴 第 3 題：主文本獨特的溫暖",
+                tagColor: "bg-[#dc2626]",
+                question: "在〈來一碗溫暖的羹湯〉結尾，作者說自己特別喜愛肉羹湯「並不是因為它獨特的滋味」，那主文本獨特的溫暖來自哪裡？",
+                evidenceA: "🥣 主文本〈來一碗溫暖的羹湯〉：「而是還能跟母親任性撒嬌，這可是世上最幸福的事了。」",
+                evidenceB: "🍍 補充文本〈最好的味覺禮物〉：「只有我嘗過熱騰騰的果醬滋味，而媽媽總是信任我的味覺……」",
+                options: [
+                    "A. 因為肉羹湯可以放很多天都不會壞掉",
+                    "B. 偏重「被母親細心照顧」以及「能向母親任性撒嬌」的親情幸福",
+                    "C. 因為作者學會了怎麼自己開一家肉羹店",
+                    "D. 因為作者喜歡偷偷把肉羹藏起來不給別人吃"
+                ],
+                correctIndex: 1,
+                explanation: "完全正確！主文本的溫暖充滿濃濃的「被寵愛與依賴感」——即使長大外食多了，只要想吃，母親仍騎車買回並煮麵加菜，讓孩子享受撒嬌的幸福。"
+            },
+            {
+                tag: "🔴 第 4 題：補充文本獨特的溫暖",
+                tagColor: "bg-[#dc2626]",
+                question: "相比主文本的「撒嬌被照顧」，補充文本〈最好的味覺禮物〉在情感與行動上展現了哪兩種「相異但同樣動人的溫暖」？",
+                evidenceA: "🥣 主文本〈來一碗溫暖的羹湯〉：母親一聽到孩子想吃，拿著提鍋騎腳踏車買回來變出兩人份。",
+                evidenceB: "🍍 補充文本〈最好的味覺禮物〉：「媽媽總是信任我的味覺，這讓我建立起小小的自信。」＋「邀請好友一起製作天然的果汁……」",
+                options: [
+                    "A. 一個人獨自吃完整瓶果醬，不願意分給朋友",
+                    "B. 孩子獲得「被信任的自信」，長大後更將「手作天然滋味傳承」給下一代",
+                    "C. 孩子覺得手作太辛苦，決定以後都買茶飲店的飲料",
+                    "D. 媽媽因為李子太酸，把整鍋果醬都倒掉了"
+                ],
+                correctIndex: 1,
+                explanation: "精準掌握！補充文本的溫暖多了一份「成長與傳承」：小時候媽媽信任孩子的味覺判斷，建立起自信；長大後作者把這份溫暖延續下去，帶孩子手作天然果汁！"
+            },
+            {
+                tag: "🌟 第 5 題：跨文本綜合比較",
+                tagColor: "bg-[#6b8e78]",
+                question: "綜合比較兩篇課文，下列哪一句話最能完整說明〈來一碗溫暖的羹湯〉與〈最好的味覺禮物〉的異同？",
+                evidenceA: "🥣 主文本〈來一碗溫暖的羹湯〉：熱騰騰的肉羹湯 ＋ 母親的包容與撒嬌幸福",
+                evidenceB: "🍍 補充文本〈最好的味覺禮物〉：香甜果汁與果醬 ＋ 母親的信任與手作傳承",
+                options: [
+                    "A. 兩篇都只描寫食物有多好吃，沒有寫到家人的感情",
+                    "B. 兩篇都透過食物傳遞愛；主文本偏重被照顧與撒嬌，補充文本則多了信任自信與傳承",
+                    "C. 主文本寫的是夏天的冰涼飲料，補充文本寫的是冬天的熱湯",
+                    "D. 兩篇文章的主角都不喜歡待在廚房裡"
+                ],
+                correctIndex: 1,
+                explanation: "滿分通關！你已經成功掌握了跨文本比較的核心：兩篇文章都從「味覺與食物」出發，卻分別寫出了「被照顧撒嬌的幸福」與「被信任及傳承」兩種動人的溫暖！"
+            }
+        ];
+
+        let dualQIndex = 0;
+        let dualScore = 0;
+        let dualAnswered = false;
+
+        function setDualLayout(mode) {
+            const grid = document.getElementById('dualArticlesGrid');
+            const cardA = document.getElementById('articleCardA');
+            const cardB = document.getElementById('articleCardB');
+            ['split', 'A', 'B'].forEach(m => {
+                const btn = document.getElementById(`layout-${m}`);
+                btn.classList.remove('bg-white', 'shadow-sm', 'font-black');
+            });
+            document.getElementById(`layout-${mode}`).classList.add('bg-white', 'shadow-sm', 'font-black');
+
+            if (mode === 'split') {
+                grid.className = 'grid grid-cols-2 gap-3 md:gap-4';
+                cardA.classList.remove('hidden');
+                cardB.classList.remove('hidden');
+            } else if (mode === 'A') {
+                grid.className = 'grid grid-cols-1 gap-4';
+                cardA.classList.remove('hidden');
+                cardB.classList.add('hidden');
+            } else {
+                grid.className = 'grid grid-cols-1 gap-4';
+                cardA.classList.add('hidden');
+                cardB.classList.remove('hidden');
+            }
+        }
+
+        function renderDualTexts() {
+            [['dualTextAContainer', textAData], ['dualTextBContainer', textBData]].forEach(([cid, data]) => {
+                const container = document.getElementById(cid);
+                container.innerHTML = '';
+                data.forEach(pArr => {
+                    const p = document.createElement('p');
+                    p.style.textIndent = '2em';
+                    pArr.forEach(sent => {
+                        const span = document.createElement('span');
+                        span.className = 'sentence-item';
+                        span.innerText = sent;
+                        span.onclick = () => {
+                            span.classList.remove('hl-same', 'hl-diff');
+                            if (currentPen === 'same') span.classList.add('hl-same');
+                            if (currentPen === 'diff') span.classList.add('hl-diff');
+                            document.getElementById('markedCounter').innerText =
+                                `🔵 ${document.querySelectorAll('.hl-same').length} ｜ 🔴 ${document.querySelectorAll('.hl-diff').length}`;
+                        };
+                        p.appendChild(span);
+                    });
+                    container.appendChild(p);
+                });
+            });
+        }
+
+        function setDualPen(type) {
+            currentPen = type;
+            ['same', 'diff', 'eraser'].forEach(t => {
+                const b = document.getElementById(`pen-${t}`);
+                b.classList.remove('ring-2', 'ring-[#2563eb]/30', 'ring-[#dc2626]/30', 'ring-gray-400/40', 'border-[#2563eb]', 'border-[#dc2626]', 'border-gray-500');
+                b.classList.add('border-transparent');
+            });
+            const active = document.getElementById(`pen-${type}`);
+            active.classList.remove('border-transparent');
+            if (type === 'same') active.classList.add('ring-2', 'ring-[#2563eb]/30', 'border-[#2563eb]');
+            if (type === 'diff') active.classList.add('ring-2', 'ring-[#dc2626]/30', 'border-[#dc2626]');
+            if (type === 'eraser') active.classList.add('ring-2', 'ring-gray-400/40', 'border-gray-500');
+        }
+
+        function switchDualStage(stageNum) {
+            [1, 2].forEach(n => {
+                const sec = document.getElementById(`g3-stage${n}`);
+                const tab = document.getElementById(`g3-tab${n}`);
+                if (n === stageNum) {
+                    sec.classList.remove('hidden');
+                    sec.classList.add('flex');
+                    tab.classList.add('bg-[#8c5a3c]', 'text-white', 'shadow-sm', 'font-black');
+                    tab.classList.remove('text-[#5c4f45]', 'font-bold');
+                } else {
+                    sec.classList.add('hidden');
+                    sec.classList.remove('flex');
+                    tab.classList.remove('bg-[#8c5a3c]', 'text-white', 'shadow-sm', 'font-black');
+                    tab.classList.add('text-[#5c4f45]', 'font-bold');
+                }
+            });
+        }
+
+        function renderDualQuestion() {
+            dualAnswered = false;
+            const q = dualQuizQuestions[dualQIndex];
+            document.getElementById('quizProgressBadge').innerText = `第 ${dualQIndex + 1} / ${dualQuizQuestions.length} 題 ｜ 🪙 ${g3Coins} 枚`;
+            document.getElementById('quizProgressBar').style.width = `${((dualQIndex + 1) / dualQuizQuestions.length) * 100}%`;
+
+            const tagEl = document.getElementById('stageTag');
+            tagEl.innerText = q.tag;
+            tagEl.className = `${q.tagColor} text-white text-xs md:text-sm font-black px-3.5 py-1 rounded-full`;
+
+            document.getElementById('questionTitle').innerText = q.question;
+            document.getElementById('questionEvidenceBox').innerHTML = `
+                <div class="bg-[#fffaf4] p-3 rounded-xl border border-[#f0c8ba] text-[#4a3b32] leading-relaxed">${q.evidenceA}</div>
+                <div class="bg-[#f7fcfa] p-3 rounded-xl border border-[#bce3d6] text-[#2d433b] leading-relaxed">${q.evidenceB}</div>
+            `;
+
+            // 每次顯示題目時隨機洗牌選項順序
+            const shuffledOptions = q.options.map((rawText, idx) => ({
+                cleanText: rawText.replace(/^[A-D]\.\s*/, ''),
+                isCorrect: idx === q.correctIndex
+            }));
+            for (let i = shuffledOptions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+            }
+            const letters = ['A', 'B', 'C', 'D'];
+
+            const optionsEl = document.getElementById('optionsContainer');
+            optionsEl.innerHTML = '';
+            shuffledOptions.forEach((optObj, displayIdx) => {
+                const btn = document.createElement('button');
+                btn.className = 'tap-btn text-left p-4 bg-white border-2 border-[#dfd0b8] rounded-2xl text-sm md:text-base font-bold text-[#4a3b32] leading-relaxed';
+                btn.innerText = `${letters[displayIdx]}. ${optObj.cleanText}`;
+                btn.onclick = () => {
+                    if (dualAnswered) return;
+                    dualAnswered = true;
+                    const isCorrect = optObj.isCorrect;
+                    optionsEl.querySelectorAll('button').forEach((b, bIdx) => {
+                        b.disabled = true;
+                        if (shuffledOptions[bIdx].isCorrect) {
+                            b.classList.remove('border-[#dfd0b8]', 'bg-white');
+                            b.classList.add('bg-[#e6f4ea]', 'border-[#34a853]', 'text-[#137333]', 'font-black');
+                        } else if (bIdx === displayIdx && !isCorrect) {
+                            b.classList.remove('border-[#dfd0b8]', 'bg-white');
+                            b.classList.add('bg-[#fce8e6]', 'border-[#ea4335]', 'text-[#c5221f]');
+                        } else {
+                            b.classList.add('opacity-60');
+                        }
+                    });
+
+                    recordAnswer('choice', 3, String(dualQIndex + 1), { question: q.question, answer: optObj.cleanText, correct: isCorrect, total: dualQuizQuestions.length });
+                    if (isCorrect) {
+                        dualScore += 20;
+                        g3Coins += 2;
+                        updateAllCoinsSummary();
+                        document.getElementById('quizProgressBadge').innerText = `第 ${dualQIndex + 1} / ${dualQuizQuestions.length} 題 ｜ 🪙 ${g3Coins} 枚`;
+                    }
+
+                    const fbBox = document.getElementById('quizFeedbackBox');
+                    fbBox.classList.remove('hidden', 'bg-[#e6f4ea]', 'border-[#34a853]', 'text-[#137333]', 'bg-[#fef7e0]', 'border-[#fbbc04]', 'text-[#7a5200]');
+                    fbBox.classList.add(...(isCorrect ? ['bg-[#e6f4ea]', 'border-[#34a853]', 'text-[#137333]'] : ['bg-[#fef7e0]', 'border-[#fbbc04]', 'text-[#7a5200]']));
+                    document.getElementById('quizFeedbackTitle').innerText = isCorrect ? "🎉 回答正確！（獲得 🪙 2 枚金幣）" : "💡 再想一想喔！正確答案已用綠色標示：";
+                    document.getElementById('quizFeedbackDetail').innerText = q.explanation;
+                    document.getElementById('nextStageBtn').innerText = dualQIndex < dualQuizQuestions.length - 1 ? "下一題 ➡️" : "查看三關金幣總結 🏆";
+                };
+                optionsEl.appendChild(btn);
+            });
+
+            document.getElementById('quizFeedbackBox').classList.add('hidden');
+        }
+
+        function nextDualQuestion() {
+            if (dualQIndex < dualQuizQuestions.length - 1) {
+                dualQIndex++;
+                renderDualQuestion();
+            } else {
+                updateAllCoinsSummary();
+                document.getElementById('quizCardContainer').classList.add('hidden');
+                const sumEl = document.getElementById('quizSummaryContainer');
+                sumEl.classList.remove('hidden');
+                sumEl.classList.add('flex');
+            }
+        }
+
+        function saveReflection() {
+            const val = document.getElementById('reflectionInput').value.trim();
+            if (!val) return;
+            recordAnswer('reflection', 3, '心得', { answer: val, coins: g1Coins + g2Coins + g3Coins });
+            const d = document.getElementById('savedReflectionDisplay');
+            document.getElementById('savedReflectionQuote').innerText = `💬 我的溫暖新定義：「${val}」`;
+            document.getElementById('savedReflectionCoinTag').innerText = `🪙 三關累計總金幣：${g1Coins + g2Coins + g3Coins} 枚`;
+            d.classList.remove('hidden');
+        }
+
+        function restartDualQuiz() {
+            dualQIndex = 0;
+            dualScore = 0;
+            g3Coins = 0;
+            updateAllCoinsSummary();
+            document.getElementById('quizSummaryContainer').classList.add('hidden');
+            document.getElementById('quizSummaryContainer').classList.remove('flex');
+            document.getElementById('quizCardContainer').classList.remove('hidden');
+            renderDualQuestion();
+        }
+
+        // 8. 教師 QR Code 看板
+        function toggleQRModal() {
+            const modal = document.getElementById('qrModal');
+            modal.classList.toggle('hidden');
+            modal.classList.toggle('flex');
+            if (!modal.classList.contains('hidden') && document.getElementById('qrcode').innerHTML === '') {
+                document.getElementById('qrUrlInput').value = window.location.href;
+                renderQRCode();
+            }
+        }
+
+        function renderQRCode() {
+            const url = document.getElementById('qrUrlInput').value.trim();
+            const box = document.getElementById('qrcode');
+            box.innerHTML = '';
+            if (!url) return;
+            new QRCode(box, {
+                text: url,
+                width: 210,
+                height: 210,
+                colorDark: "#3d405b",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        window.onload = function() {
+            renderDualTexts();
+            renderDualQuestion();
+            updateAllCoinsSummary();
+        };
+    </script>
+</body>
+</html>
