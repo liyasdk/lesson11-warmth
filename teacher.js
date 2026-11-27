@@ -25,6 +25,177 @@
         return el;
     }
 
+    let reviewTemplate;
+    function loadReviewTemplate() {
+        if (!reviewTemplate) {
+            reviewTemplate = fetch('./index.html').then(response => {
+                if (!response.ok) throw new Error('Unable to load lesson');
+                return response.text();
+            }).then(html => {
+                const lesson = new DOMParser().parseFromString(html, 'text/html');
+                lesson.querySelectorAll('script[src]').forEach(script => {
+                    const src = script.getAttribute('src');
+                    if (/student[.]js|config[.]js|@supabase/.test(src)) script.remove();
+                });
+                const guard = lesson.createElement('script');
+                guard.textContent = 'window.recordAnswer = () => {};';
+                lesson.head.append(guard);
+                return '<!doctype html>' + lesson.documentElement.outerHTML;
+            }).catch(error => { reviewTemplate = null; throw error; });
+        }
+        return reviewTemplate;
+    }
+
+    function originalAnswer(frame, row) {
+        const win = frame.contentWindow;
+        const doc = frame.contentDocument;
+        const find = id => doc.getElementById(id);
+        const p = row.payload;
+        let panel;
+        if (row.kind === 'choice') {
+            const task = Number(row.task);
+            const question = Number(row.item);
+            const limit = task === 3 ? 5 : 4;
+            if (!Number.isInteger(question) || question < 1 || question > limit) return null;
+            const dual = task === 3;
+            if (dual) win.restartDualQuiz();
+            else win.startTaskCompQuiz(task);
+            for (let index = 1; index < question; index++) {
+                if (dual) win.nextDualQuestion();
+                else win.nextTaskCompQ(task);
+            }
+            const options = find(dual ? 'optionsContainer' : 'g' + task + '-compOptions');
+            const title = find(dual ? 'questionTitle' : 'g' + task + '-compQTitle');
+            if (title.textContent.trim() !== String(p.question).trim()) return null;
+            const buttons = [...options.querySelectorAll('button')];
+            const chosen = buttons.find(button => button.textContent.trim().replace(/^[A-D][.] */,'') === p.answer);
+            if (!chosen) return null;
+            chosen.click();
+            chosen.style.outline = '3px solid ' + (p.correct ? '#15803d' : '#b45309');
+            chosen.textContent += p.correct ? '　✓ 學生作答' : '　✗ 學生作答';
+            panel = find(dual ? 'quizCardContainer' : 'g' + task + '-compQuiz').cloneNode(true);
+            panel.querySelectorAll('[id]').forEach(node => {
+                if (/compNextBtn|nextStageBtn/.test(node.id)) node.remove();
+            });
+        } else if (row.kind === 'classification' && [1, 2].includes(row.task)) {
+            win.resetSingleGame(row.task);
+            const root = find('g' + row.task + '-main');
+            const cards = [...root.querySelectorAll('.clue-card')];
+            const boxes = [...root.querySelectorAll('.cat-box')];
+            for (const item of p.placements || []) {
+                const card = cards.find(node => node.textContent.trim() === item?.text);
+                const box = boxes.find(node => node.dataset.category === item?.category);
+                if (!card || !box) continue;
+                box.querySelector('.target-slot').append(card);
+                const correct = item.category === item.expected;
+                card.style.backgroundColor = correct ? '#3e735c' : '#a03535';
+                card.textContent = (correct ? '✓ ' : '✗ ') + card.textContent;
+            }
+            find('g' + row.task + '-score').textContent = p.correct + ' / 10';
+            find('g' + row.task + '-feedback').textContent = '第 ' + p.attempt + ' 次驗證｜本次放錯 ' + p.incorrect + ' 張';
+            panel = root.cloneNode(true);
+            panel.querySelectorAll('button').forEach(button => button.remove());
+        } else if (row.kind === 'reflection') {
+            panel = find('reflectionInput').closest('.rounded-2xl.border-2').cloneNode(true);
+            panel.querySelectorAll('input, button, label + span, #savedReflectionCoinTag + span').forEach(node => node.remove());
+            panel.querySelector('#savedReflectionDisplay').classList.remove('hidden');
+            panel.querySelector('#savedReflectionQuote').textContent = String(p.answer ?? '');
+            panel.querySelector('#savedReflectionCoinTag').textContent = '三關累計總金幣：' + p.coins + ' 枚';
+        }
+        if (!panel) return null;
+        panel.classList.remove('hidden');
+        panel.classList.add('flex', 'flex-col');
+        for (const node of [panel, ...panel.querySelectorAll('*')]) {
+            node.removeAttribute('id');
+            for (const attribute of [...node.attributes]) {
+                if (attribute.name.startsWith('on')) node.removeAttribute(attribute.name);
+            }
+            if (node.tagName === 'BUTTON') {
+                node.disabled = true;
+                node.classList.remove('opacity-60');
+            }
+        }
+        return panel;
+    }
+
+    async function showOriginalAnswers(list, entries, request) {
+        const frame = document.createElement('iframe');
+        frame.title = '學生原版作答畫面';
+        frame.hidden = true;
+        frame.style.cssText = 'width:100%;height:360px;border:1px solid #dfd1bc;border-radius:1rem';
+        const shell = document.createElement('li');
+        shell.style.cssText = 'list-style:none;white-space:normal';
+        const loading = append(shell, 'p', '正在載入學生原版作答畫面…');
+        list.prepend(shell);
+        try {
+            const template = await loadReviewTemplate();
+            if (!authorized || request !== detailRequest || !shell.isConnected) return;
+            frame.addEventListener('load', () => {
+                if (!authorized || request !== detailRequest || !shell.isConnected) return;
+                try {
+                    const doc = frame.contentDocument;
+                    const source = [...doc.body.children];
+                    const sheet = doc.createElement('main');
+                    sheet.className = 'w-full max-w-6xl flex flex-col gap-4';
+                    const recent = new Set();
+                    for (const row of entries) {
+                        const cardKey = [row.task, row.kind, row.item].join(':');
+                        let panel;
+                        try { panel = originalAnswer(frame, row); }
+                        catch { panel = null; }
+                        if (!panel) continue;
+                        const article = doc.createElement(recent.has(cardKey) ? 'details' : 'article');
+                        const label = doc.createElement(recent.has(cardKey) ? 'summary' : 'h2');
+                        label.className = 'text-sm font-bold mb-2';
+                        label.textContent = '任務 ' + row.task + '｜' + timestamp(row.received_at)
+                            + (recent.has(cardKey) ? '｜較早作答' : '');
+                        article.append(label, panel);
+                        sheet.append(article);
+                        recent.add(cardKey);
+                    }
+                    if (!sheet.children.length) throw new Error('No matching lesson panels');
+                    source.forEach(node => { node.style.display = 'none'; });
+                    doc.body.append(sheet);
+                    frame.hidden = false;
+                    loading.remove();
+                    const resize = () => { frame.style.height = sheet.scrollHeight + 48 + 'px'; };
+                    new ResizeObserver(resize).observe(sheet);
+                    resize();
+                    const history = document.createElement('details');
+                    append(history, 'summary', '查看文字作答紀錄');
+                    const records = document.createElement('ol');
+                    [...list.children].filter(node => node !== shell).forEach(node => records.append(node));
+                    history.append(records);
+                    shell.append(history);
+                } catch {
+                    shell.remove();
+                }
+            }, { once: true });
+            frame.srcdoc = template;
+            shell.append(frame);
+        } catch {
+            shell.remove();
+        }
+    }
+
+    const draw = document.createElement('button');
+    draw.type = 'button';
+    draw.textContent = '抽籤';
+    get('refresh').before(draw);
+    const drawResult = document.createElement('p');
+    drawResult.setAttribute('role', 'status');
+    get('summary').after(drawResult);
+    draw.addEventListener('click', () => {
+        const choices = [...get('rows').querySelectorAll('th button')];
+        if (!choices.length) {
+            drawResult.textContent = '名單載入後即可抽籤。';
+            return;
+        }
+        const selected = choices[Math.floor(Math.random() * choices.length)];
+        drawResult.textContent = '抽中 ' + selected.textContent + ' 號';
+    });
+
+    let answerEntries = [];
     async function details(seat, more = false) {
         activeSeat = seat;
         const request = ++detailRequest;
@@ -36,9 +207,10 @@
         if (error) { status.textContent = '明細讀取失敗，請再試一次。'; return; }
         get('detail-title').textContent = `座號 ${seat} 的作答明細`;
         const list = get('details');
-        if (!more) list.replaceChildren();
+        list.replaceChildren();
+        answerEntries = more ? [...answerEntries, ...data] : data;
         if (!data.length && !more) append(list, 'li', '尚無作答');
-        for (const row of data) {
+        for (const row of answerEntries) {
             const p = row.payload;
             const prefix = `${timestamp(row.received_at)}｜任務 ${row.task}`;
             let answer = '';
@@ -54,6 +226,7 @@
             }
             append(list, 'li', `${prefix}｜${answer}`);
         }
+        if (answerEntries.length) void showOriginalAnswers(list, answerEntries, request);
         detailOffset = offset + data.length;
         get('more').hidden = data.length < 40;
     }
@@ -71,7 +244,10 @@
                 const tr = document.createElement('tr');
                 const seat = append(append(tr, 'th', ''), 'button', student.seat);
                 seat.type = 'button';
-                seat.addEventListener('click', () => void details(student.seat));
+                seat.addEventListener('click', async () => {
+                    await details(student.seat);
+                    if (activeSeat === student.seat) get('detail-title').scrollIntoView({ block: 'start' });
+                });
                 for (const task of [1, 2, 3]) {
                     const progress = student.tasks[String(task)];
                     let label = '未作答';
@@ -128,6 +304,8 @@
     get('logout').addEventListener('click', async () => {
         authorized = false;
         activeSeat = null;
+        drawResult.textContent = '';
+        answerEntries = [];
         get('rows').replaceChildren();
         get('details').replaceChildren();
         get('detail-title').textContent = '作答明細';
