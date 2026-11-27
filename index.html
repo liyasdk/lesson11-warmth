@@ -185,13 +185,9 @@
 
         <aside class="ipad-panel bg-white p-4">
             <form id="join-class" class="flex flex-wrap items-end gap-3">
-                <label class="font-bold">課堂作答碼
-                    <input id="class-code" required maxlength="24" autocomplete="off" autocapitalize="characters" class="block border rounded-lg p-2" placeholder="輸入老師發的個人作答碼">
-                </label>
-                <button class="bg-[#265675] text-white rounded-lg p-2 font-bold">加入課堂</button>
                 <a href="teacher.html" class="p-2 underline">教師後台</a>
             </form>
-            <p id="class-status" role="status" class="mt-2 text-sm">請先加入課堂，老師才會收到之後的作答。</p>
+            <p id="class-status" role="status" class="mt-2 text-sm">請先點選自己的座號。</p>
         </aside>
 
         <!-- 三大任務觸控大卡片 -->
@@ -858,7 +854,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <script src="student.js"></script>
+    <script src="student.js?v=seat-selection-1"></script>
     <script>
         // 1. 課文原文資料庫
         const textAData = [
